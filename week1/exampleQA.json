@@ -1,0 +1,386 @@
+[
+  {
+    "id": "qa_0",
+    "content": "Question: I look for new opportunities through my existing accounts. Recommendation: Continuing to look for new opportunities through existing accounts",
+    "source_document_name": "exampleQA.json",
+    "document_type": "Client_Provided_FAQ",
+    "category": "Prospecting",
+    "advice_type": "continue_to_do"
+  },
+  {
+    "id": "qa_1",
+    "content": "Question: I build my network of contacts and ask for referrals. Recommendation: Building your network of contacts and asking for referrals",
+    "source_document_name": "exampleQA.json",
+    "document_type": "Client_Provided_FAQ",
+    "category": "Prospecting",
+    "advice_type": "continue_to_do"
+  },
+  {
+    "id": "qa_2",
+    "content": "Question: I rely on others in my organisation to generate leads. Recommendation: Relying on others in your organisation to generate leads",
+    "source_document_name": "exampleQA.json",
+    "document_type": "Client_Provided_FAQ",
+    "category": "Prospecting",
+    "advice_type": "stop_to_do"
+  },
+  {
+    "id": "qa_3",
+    "content": "Question: I focus on only one source of new business. Recommendation: Focusing on only one source of new business",
+    "source_document_name": "exampleQA.json",
+    "document_type": "Client_Provided_FAQ",
+    "category": "Prospecting",
+    "advice_type": "stop_to_do"
+  },
+  {
+    "id": "qa_4",
+    "content": "Question: I assume that I have identified all the opportunities in my existing accounts. Recommendation: Assuming that you have identified all the opportunities in your existing accounts",
+    "source_document_name": "exampleQA.json",
+    "document_type": "Client_Provided_FAQ",
+    "category": "Prospecting",
+    "advice_type": "stop_to_do"
+  },
+  {
+    "id": "qa_5",
+    "content": "Question: I use social media to identify and engage with prospects. Recommendation: Using social media to identify and engage with prospects",
+    "source_document_name": "exampleQA.json",
+    "document_type": "Client_Provided_FAQ",
+    "category": "Prospecting",
+    "advice_type": "do_more"
+  },
+  {
+    "id": "qa_6",
+    "content": "Question: I have a systematic approach to prospecting that includes a mix of activities. Recommendation: Developing a systematic approach to prospecting that includes a mix of activities",
+    "source_document_name": "exampleQA.json",
+    "document_type": "Client_Provided_FAQ",
+    "category": "Prospecting",
+    "advice_type": "do_more"
+  },
+  {
+    "id": "qa_7",
+    "content": "Question: I track my prospecting activities and results to identify what's working and what's not. Recommendation: Tracking your prospecting activities and results to identify what's working and what's not",
+    "source_document_name": "exampleQA.json",
+    "document_type": "Client_Provided_FAQ",
+    "category": "Prospecting",
+    "advice_type": "do_more"
+  },
+  {
+    "id": "qa_8",
+    "content": "Question: I ask questions to understand the customer's needs and priorities. Recommendation: Asking questions to understand the customer's needs and priorities",
+    "source_document_name": "exampleQA.json",
+    "document_type": "Client_Provided_FAQ",
+    "category": "Qualifying",
+    "advice_type": "continue_to_do"
+  },
+  {
+    "id": "qa_9",
+    "content": "Question: I focus on my Ideal Customer Profile. Recommendation: Continuing to focus on your Ideal Customer Profile",
+    "source_document_name": "exampleQA.json",
+    "document_type": "Client_Provided_FAQ",
+    "category": "Qualifying",
+    "advice_type": "continue_to_do"
+  },
+  {
+    "id": "qa_10",
+    "content": "Question: I make assumptions about the customer's needs. Recommendation: Making assumptions about the customer's needs",
+    "source_document_name": "exampleQA.json",
+    "document_type": "Client_Provided_FAQ",
+    "category": "Qualifying",
+    "advice_type": "stop_to_do"
+  },
+  {
+    "id": "qa_11",
+    "content": "Question: I talk more than I listen. Recommendation: Talking more than you listen",
+    "source_document_name": "exampleQA.json",
+    "document_type": "Client_Provided_FAQ",
+    "category": "Qualifying",
+    "advice_type": "stop_to_do"
+  },
+  {
+    "id": "qa_12",
+    "content": "Question: I try to sell to everyone. Recommendation: Trying to sell to everyone",
+    "source_document_name": "exampleQA.json",
+    "document_type": "Client_Provided_FAQ",
+    "category": "Qualifying",
+    "advice_type": "stop_to_do"
+  },
+  {
+    "id": "qa_13",
+    "content": "Question: I use a consistent set of qualification criteria to evaluate opportunities. Recommendation: Using a consistent set of qualification criteria to evaluate opportunities",
+    "source_document_name": "exampleQA.json",
+    "document_type": "Client_Provided_FAQ",
+    "category": "Qualifying",
+    "advice_type": "do_more"
+  },
+  {
+    "id": "qa_14",
+    "content": "Question: I dig deep to uncover the customer's compelling reason to buy. Recommendation: Digging deeper to uncover the customer's compelling reason to buy",
+    "source_document_name": "exampleQA.json",
+    "document_type": "Client_Provided_FAQ",
+    "category": "Qualifying",
+    "advice_type": "do_more"
+  },
+  {
+    "id": "qa_15",
+    "content": "Question: I walk away from deals that are not a good fit. Recommendation: Learning to walk away from deals that are not a good fit",
+    "source_document_name": "exampleQA.json",
+    "document_type": "Client_Provided_FAQ",
+    "category": "Qualifying",
+    "advice_type": "do_more"
+  },
+  {
+    "id": "qa_16",
+    "content": "Question: I take the time to understand the customer's current situation and desired outcomes. Recommendation: Taking the time to understand the customer's current situation and desired outcomes",
+    "source_document_name": "exampleQA.json",
+    "document_type": "Client_Provided_FAQ",
+    "category": "Diagnosing",
+    "advice_type": "continue_to_do"
+  },
+  {
+    "id": "qa_17",
+    "content": "Question: I use open-ended questions to encourage the customer to share more information. Recommendation: Using open-ended questions to encourage the customer to share more information",
+    "source_document_name": "exampleQA.json",
+    "document_type": "Client_Provided_FAQ",
+    "category": "Diagnosing",
+    "advice_type": "continue_to_do"
+  },
+  {
+    "id": "qa_18",
+    "content": "Question: I jump to conclusions about the customer's needs. Recommendation: Jumping to conclusions about the customer's needs",
+    "source_document_name": "exampleQA.json",
+    "document_type": "Client_Provided_FAQ",
+    "category": "Diagnosing",
+    "advice_type": "stop_to_do"
+  },
+  {
+    "id": "qa_19",
+    "content": "Question: I prescribe a solution before I have fully diagnosed the problem. Recommendation: Prescribing a solution before you have fully diagnosed the problem",
+    "source_document_name": "exampleQA.json",
+    "document_type": "Client_Provided_FAQ",
+    "category": "Diagnosing",
+    "advice_type": "stop_to_do"
+  },
+  {
+    "id": "qa_20",
+    "content": "Question: I fail to ask about the potential negative consequences of inaction. Recommendation: Failing to ask about the potential negative consequences of inaction",
+    "source_document_name": "exampleQA.json",
+    "document_type": "Client_Provided_FAQ",
+    "category": "Diagnosing",
+    "advice_type": "stop_to_do"
+  },
+  {
+    "id": "qa_21",
+    "content": "Question: I have a deep understanding of the customer's business and industry. Recommendation: Developing a deeper understanding of the customer's business and industry",
+    "source_document_name": "exampleQA.json",
+    "document_type": "Client_Provided_FAQ",
+    "category": "Diagnosing",
+    "advice_type": "do_more"
+  },
+  {
+    "id": "qa_22",
+    "content": "Question: I map out the customer's decision-making process. Recommendation: Mapping out the customer's decision-making process",
+    "source_document_name": "exampleQA.json",
+    "document_type": "Client_Provided_FAQ",
+    "category": "Diagnosing",
+    "advice_type": "do_more"
+  },
+  {
+    "id": "qa_23",
+    "content": "Question: I quantify the impact of the customer's problem in financial terms. Recommendation: Quantifying the impact of the customer's problem in financial terms",
+    "source_document_name": "exampleQA.json",
+    "document_type": "Client_Provided_FAQ",
+    "category": "Diagnosing",
+    "advice_type": "do_more"
+  },
+  {
+    "id": "qa_24",
+    "content": "Question: I build rapport and establish trust with the customer. Recommendation: Building rapport and establishing trust with the customer",
+    "source_document_name": "exampleQA.json",
+    "document_type": "Client_Provided_FAQ",
+    "category": "Influencing",
+    "advice_type": "continue_to_do"
+  },
+  {
+    "id": "qa_25",
+    "content": "Question: I tailor my message to the customer's specific needs and interests. Recommendation: Tailoring your message to the customer's specific needs and interests",
+    "source_document_name": "exampleQA.json",
+    "document_type": "Client_Provided_FAQ",
+    "category": "Influencing",
+    "advice_type": "continue_to_do"
+  },
+  {
+    "id": "qa_26",
+    "content": "Question: I use a one-size-fits-all approach to selling. Recommendation: Using a one-size-fits-all approach to selling",
+    "source_document_name": "exampleQA.json",
+    "document_type": "Client_Provided_FAQ",
+    "category": "Influencing",
+    "advice_type": "stop_to_do"
+  },
+  {
+    "id": "qa_27",
+    "content": "Question: I talk about my products or services from my own perspective. Recommendation: Talking about your products or services from your own perspective",
+    "source_document_name": "exampleQA.json",
+    "document_type": "Client_Provided_FAQ",
+    "category": "Influencing",
+    "advice_type": "stop_to_do"
+  },
+  {
+    "id": "qa_28",
+    "content": "Question: I fail to build consensus among all the stakeholders. Recommendation: Failing to build consensus among all the stakeholders",
+    "source_document_name": "exampleQA.json",
+    "document_type": "Client_Provided_FAQ",
+    "category": "Influencing",
+    "advice_type": "stop_to_do"
+  },
+  {
+    "id": "qa_29",
+    "content": "Question: I use storytelling to make my message more memorable and persuasive. Recommendation: Using storytelling to make your message more memorable and persuasive",
+    "source_document_name": "exampleQA.json",
+    "document_type": "Client_Provided_FAQ",
+    "category": "Influencing",
+    "advice_type": "do_more"
+  },
+  {
+    "id": "qa_30",
+    "content": "Question: I have a deep understanding of the customer's buying psychology. Recommendation: Developing a deeper understanding of the customer's buying psychology",
+    "source_document_name": "exampleQA.json",
+    "document_type": "Client_Provided_FAQ",
+    "category": "Influencing",
+    "advice_type": "do_more"
+  },
+  {
+    "id": "qa_31",
+    "content": "Question: I proactively address the customer's potential concerns or objections. Recommendation: Proactively addressing the customer's potential concerns or objections",
+    "source_document_name": "exampleQA.json",
+    "document_type": "Client_Provided_FAQ",
+    "category": "Influencing",
+    "advice_type": "do_more"
+  },
+  {
+    "id": "qa_32",
+    "content": "Question: I clearly articulate the value of my solution in the customer's terms. Recommendation: Clearly articulating the value of your solution in the customer's terms",
+    "source_document_name": "exampleQA.json",
+    "document_type": "Client_Provided_FAQ",
+    "category": "Proposing",
+    "advice_type": "continue_to_do"
+  },
+  {
+    "id": "qa_33",
+    "content": "Question: I collaborate with the customer to develop a solution that meets their needs. Recommendation: Collaborating with the customer to develop a solution that meets their needs",
+    "source_document_name": "exampleQA.json",
+    "document_type": "Client_Provided_FAQ",
+    "category": "Proposing",
+    "advice_type": "continue_to_do"
+  },
+  {
+    "id": "qa_34",
+    "content": "Question: I send proposals without first gaining the customer's agreement on the problem and the proposed solution. Recommendation: Sending proposals without first gaining the customer's agreement on the problem and the proposed solution",
+    "source_document_name": "exampleQA.json",
+    "document_type": "Client_Provided_FAQ",
+    "category": "Proposing",
+    "advice_type": "stop_to_do"
+  },
+  {
+    "id": "qa_35",
+    "content": "Question: My proposals fail to differentiate my solution from the competition. Recommendation: Failing to differentiate your proposal from the competition",
+    "source_document_name": "exampleQA.json",
+    "document_type": "Client_Provided_FAQ",
+    "category": "Proposing",
+    "advice_type": "stop_to_do"
+  },
+  {
+    "id": "qa_36",
+    "content": "Question: My proposals are focused on my products or services, rather than on the customer's outcomes. Recommendation: Submitting proposals that are focused on your products or services, rather than on the customer's outcomes",
+    "source_document_name": "exampleQA.json",
+    "document_type": "Client_Provided_FAQ",
+    "category": "Proposing",
+    "advice_type": "stop_to_do"
+  },
+  {
+    "id": "qa_37",
+    "content": "Question: I use a proposal template that is professional, persuasive, and easy to understand. Recommendation: Using a proposal template that is professional, persuasive, and easy to understand",
+    "source_document_name": "exampleQA.json",
+    "document_type": "Client_Provided_FAQ",
+    "category": "Proposing",
+    "advice_type": "do_more"
+  },
+  {
+    "id": "qa_38",
+    "content": "Question: My proposals include a clear and compelling executive summary. Recommendation: Including a clear and compelling executive summary",
+    "source_document_name": "exampleQA.json",
+    "document_type": "Client_Provided_FAQ",
+    "category": "Proposing",
+    "advice_type": "do_more"
+  },
+  {
+    "id": "qa_39",
+    "content": "Question: I follow up after I have submitted the proposal to answer any questions and address any concerns. Recommendation: Following up after you have submitted the proposal to answer any questions and address any concerns",
+    "source_document_name": "exampleQA.json",
+    "document_type": "Client_Provided_FAQ",
+    "category": "Proposing",
+    "advice_type": "do_more"
+  },
+  {
+    "id": "qa_40",
+    "content": "Question: I ask for the business in a clear and confident manner. Recommendation: Asking for the business in a clear and confident manner",
+    "source_document_name": "exampleQA.json",
+    "document_type": "Client_Provided_FAQ",
+    "category": "Closing",
+    "advice_type": "continue_to_do"
+  },
+  {
+    "id": "qa_41",
+    "content": "Question: I summarise the agreed-upon solution and next steps. Recommendation: Summarising the agreed-upon solution and next steps",
+    "source_document_name": "exampleQA.json",
+    "document_type": "Client_Provided_FAQ",
+    "category": "Closing",
+    "advice_type": "continue_to_do"
+  },
+  {
+    "id": "qa_42",
+    "content": "Question: I assume the customer will buy without me asking for the business. Recommendation: Assuming the customer will buy without you asking for the business",
+    "source_document_name": "exampleQA.json",
+    "document_type": "Client_Provided_FAQ",
+    "category": "Closing",
+    "advice_type": "stop_to_do"
+  },
+  {
+    "id": "qa_43",
+    "content": "Question: I offer discounts or concessions too early in the sales process. Recommendation: Offering discounts or concessions too early in the sales process",
+    "source_document_name": "exampleQA.json",
+    "document_type": "Client_Provided_FAQ",
+    "category": "Closing",
+    "advice_type": "stop_to_do"
+  },
+  {
+    "id": "qa_44",
+    "content": "Question: I fail to create a sense of urgency. Recommendation: Failing to create a sense of urgency",
+    "source_document_name": "exampleQA.json",
+    "document_type": "Client_Provided_FAQ",
+    "category": "Closing",
+    "advice_type": "stop_to_do"
+  },
+  {
+    "id": "qa_45",
+    "content": "Question: I recognise buying signals. Recommendation: Learning to recognise buying signals",
+    "source_document_name": "exampleQA.json",
+    "document_type": "Client_Provided_FAQ",
+    "category": "Closing",
+    "advice_type": "do_more"
+  },
+  {
+    "id": "qa_46",
+    "content": "Question: I have a plan for overcoming last-minute objections. Recommendation: Developing a plan for overcoming last-minute objections",
+    "source_document_name": "exampleQA.json",
+    "document_type": "Client_Provided_FAQ",
+    "category": "Closing",
+    "advice_type": "do_more"
+  },
+  {
+    "id": "qa_47",
+    "content": "Question: I make it easy for the customer to buy. Recommendation: Making it easy for the customer to buy",
+    "source_document_name": "exampleQA.json",
+    "document_type": "Client_Provided_FAQ",
+    "category": "Closing",
+    "advice_type": "do_more"
+  }
+]
