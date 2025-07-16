@@ -1,0 +1,17 @@
+{
+  "userId": "user_1234567890",
+  "timestamp": "2025-01-27T10:30:00.000Z",
+  "scores": {
+    "Go to Market": 0.8,
+    "Performance Metrics": 1.2,
+    "Commercial Essentials": -0.5,
+    "Optimal Processes": 0.3,
+    "People, Structure & Culture": 1.5,
+    "Systems & Tools": -0.2
+  },
+  "summary": {
+    "averageScore": 0.52,
+    "highestScore": 1.5,
+    "lowestScore": -0.5
+  }
+} 

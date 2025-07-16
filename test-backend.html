@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Backend API Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .log { background: #f5f5f5; padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .info { background: #d1ecf1; color: #0c5460; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+        pre { white-space: pre-wrap; word-wrap: break-word; }
+    </style>
+</head>
+<body>
+    <h1>Backend API 测试工具</h1>
+    
+    <div>
+        <button onclick="testSaveReport()">测试保存报告API</button>
+        <button onclick="testLLMAdvice()">测试LLM建议API</button>
+        <button onclick="clearLogs()">清除日志</button>
+    </div>
+    
+    <div id="logs"></div>
+
+    <script>
+        function log(message, type = 'info') {
+            const logsDiv = document.getElementById('logs');
+            const logDiv = document.createElement('div');
+            logDiv.className = `log ${type}`;
+            logDiv.innerHTML = `<strong>${new Date().toLocaleTimeString()}</strong>: ${message}`;
+            logsDiv.appendChild(logDiv);
+            logsDiv.scrollTop = logsDiv.scrollHeight;
+        }
+
+        function clearLogs() {
+            document.getElementById('logs').innerHTML = '';
+        }
+
+        // 模拟完整的评估数据
+        const mockAssessmentData = {
+            serviceOffering: {
+                "industry": { "text": "Technology" },
+                "business-challenge": { "text": "Scaling operations efficiently" },
+                "service-type": {
+                    "question": "How would you describe what you offer?",
+                    "question_id": "R1",
+                    "anwser": "Service",
+                    "anwserselete": "a",
+                    "additionalText": ""
+                },
+                "opportunity-type": {
+                    "question": "How would you describe the opportunity you have?",
+                    "question_id": "R2",
+                    "anwser": "First mover",
+                    "anwserselete": "a",
+                    "additionalText": ""
+                }
+            },
+            "Base camp for success (go to market GTM)": {
+                "target-niche": {
+                    "question_id": "question_00",
+                    "category": "go to market",
+                    "question": "We know exactly which niche sector(s), and in which geographies, to target",
+                    "anwser": "Strongly Agree",
+                    "score": 2
+                }
+            },
+            "Tracking the climb (Performance Metrics PM)": {
+                "commercial-performance": {
+                    "question_id": "question_01",
+                    "category": "performance metrics",
+                    "question": "We have a good grasp of our current commercial performance including revenue, gross profit, average deal value",
+                    "anwser": "Agree",
+                    "score": 1
+                }
+            }
+        };
+
+        async function testSaveReport() {
+            log("🚀 开始测试保存报告API...", "info");
+            
+            try {
+                log("📤 发送数据到: http://127.0.0.1:8000/api/save-user-report", "info");
+                log("📤 数据内容:", "info");
+                log(`<pre>${JSON.stringify(mockAssessmentData, null, 2)}</pre>`, "info");
+                
+                const startTime = Date.now();
+                const response = await fetch("http://127.0.0.1:8000/api/save-user-report", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(mockAssessmentData)
+                });
+                const endTime = Date.now();
+                
+                log(`📥 响应时间: ${endTime - startTime}ms`, "info");
+                log(`📥 响应状态: ${response.status} ${response.statusText}`, "info");
+                
+                // 显示响应头
+                const headers = {};
+                response.headers.forEach((value, key) => {
+                    headers[key] = value;
+                });
+                log(`📥 响应头: ${JSON.stringify(headers, null, 2)}`, "info");
+                
+                if (response.ok) {
+                    const responseData = await response.json();
+                    log("✅ API调用成功!", "success");
+                    log(`📥 响应数据: ${JSON.stringify(responseData, null, 2)}`, "success");
+                } else {
+                    const errorText = await response.text();
+                    log(`❌ API调用失败: ${response.status}`, "error");
+                    log(`❌ 错误详情: ${errorText}`, "error");
+                }
+            } catch (error) {
+                log(`❌ 网络错误: ${error.message}`, "error");
+                log(`❌ 错误类型: ${error.constructor.name}`, "error");
+            }
+        }
+
+        async function testLLMAdvice() {
+            log("🚀 开始测试LLM建议API...", "info");
+            
+            try {
+                const testData = {
+                    userId: "test@example.com",
+                    assessmentData: mockAssessmentData
+                };
+                
+                log("📤 发送数据到: /api/llm-advice", "info");
+                log("📤 数据内容:", "info");
+                log(`<pre>${JSON.stringify(testData, null, 2)}</pre>`, "info");
+                
+                const startTime = Date.now();
+                const response = await fetch("/api/llm-advice", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(testData)
+                });
+                const endTime = Date.now();
+                
+                log(`📥 响应时间: ${endTime - startTime}ms`, "info");
+                log(`📥 响应状态: ${response.status} ${response.statusText}`, "info");
+                
+                if (response.ok) {
+                    const responseData = await response.json();
+                    log("✅ LLM建议API调用成功!", "success");
+                    log(`📥 建议内容: ${responseData.advice}`, "success");
+                    log(`📥 时间戳: ${responseData.timestamp}`, "success");
+                } else {
+                    const errorText = await response.text();
+                    log(`❌ LLM建议API调用失败: ${response.status}`, "error");
+                    log(`❌ 错误详情: ${errorText}`, "error");
+                }
+            } catch (error) {
+                log(`❌ 网络错误: ${error.message}`, "error");
+            }
+        }
+    </script>
+</body>
+</html> 

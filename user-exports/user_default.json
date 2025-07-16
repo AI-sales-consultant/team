@@ -1,0 +1,131 @@
+{
+  "userId": "user_default",
+  "serviceOffering": {
+    "industry": {
+      "text": "1"
+    },
+    "business-challenge": {
+      "text": "1"
+    },
+    "service-type": {
+      "options": [
+        "Service"
+      ],
+      "additionalText": "",
+      "selectedOption": "Product"
+    },
+    "opportunity-type": {
+      "options": [
+        "Disruptor"
+      ],
+      "additionalText": "",
+      "selectedOption": "Competitive"
+    },
+    "concerns": {
+      "options": [
+        "Customer Acquisition"
+      ],
+      "additionalText": "",
+      "selectedOption": "Customer Acquisition"
+    },
+    "growth-route": {
+      "options": [
+        "Sales via a partner"
+      ],
+      "additionalText": "",
+      "selectedOption": "Direct Sales"
+    },
+    "business-age": {
+      "options": [
+        "3-5 years"
+      ],
+      "additionalText": "",
+      "selectedOption": "3-5 years"
+    },
+    "business-size-employees": {
+      "options": [
+        "5-15 people"
+      ],
+      "additionalText": "",
+      "selectedOption": "5-15 people"
+    },
+    "business-size-revenue": {
+      "options": [
+        "£1m - £2.5m"
+      ],
+      "additionalText": "",
+      "selectedOption": "£1m - £2.5m"
+    },
+    "paying-clients": {
+      "options": [
+        "4 to 8"
+      ],
+      "additionalText": "",
+      "selectedOption": "9 plus"
+    },
+    "biggest-client-revenue": {
+      "options": [
+        "25-50%"
+      ],
+      "additionalText": "",
+      "selectedOption": "25-50%"
+    },
+    "revenue-type": {
+      "options": [
+        "Multi-year recurring revenue"
+      ],
+      "additionalText": "",
+      "selectedOption": "Monthly recurring revenue"
+    },
+    "funding-status": {
+      "options": [
+        "Seed Funded"
+      ],
+      "additionalText": "",
+      "selectedOption": "Seed Funded"
+    },
+    "revenue-targets": {
+      "options": [
+        "50%+ growth"
+      ],
+      "additionalText": "",
+      "selectedOption": "100%+ growth"
+    },
+    "growth-ambitions": {
+      "options": [
+        "Regular, Steady growth"
+      ],
+      "additionalText": "",
+      "selectedOption": "Explosive growth"
+    },
+    "clients-needed": {
+      "options": [
+        "7+"
+      ],
+      "additionalText": "",
+      "selectedOption": "7+"
+    },
+    "preferred-revenue": {
+      "options": [
+        "Multi-year recurring revenue"
+      ],
+      "additionalText": "",
+      "selectedOption": "One-off fees"
+    },
+    "funding-plans": {
+      "options": [
+        "VC / Angel Investment"
+      ],
+      "additionalText": "",
+      "selectedOption": "VC / Angel Investment"
+    }
+  },
+  "pillarReports": {
+    "Go to Market": "How could you gain deeper insights into account health and opportunities for growth? Could you introduce a more formalised feedback loop with your key accounts? Once you understand their challenges, adapt your strategy and think beyond just retention - consider how account expansion could unlock new revenue streams. Always consider how you can teach your clients something, this elevates you in their world.",
+    "Performance Metrics": "Sharing revenue and gross profit targets with your team gives everyone a sense of ownership and direction. Think about having regular briefings, updates or open Q&A sessions so that everyone knows not just the 'what' but the 'why' behind your numbers. ",
+    "Commercial Essentials": "Your current documents are already effective but to improve them further, think about creating adaptable templates to suit different clients. Flexibility like this can speed up the agreement process and improve client satisfaction. Gathering client feedback can also identify areas you might need to simplify.",
+    "Optimal Processes": "A well-executed handoff process sets the stage for delivering on the promises you've made so far. It leads to higher client satisfaction and repeat business.  Think about putting a formal feedback loop in place with clients post-handoff to understand their experience and see where you can imporove. Consider project management tools or CRMs to streamline communication and make it accessible to the delivery team.",
+    "People, Structure & Culture": "Make a sales compensation plan with incentives that reward behaviour in line with business objectives. You'll drive sales performance and foster the right culture. Think about creating sales contests, awards for top performers or team celebrations for hitting targets. These can build an engaging and supportive sales culture, especially if you listen to their feedback to see if the initiatives are helping to create culture and achieve business objectives. ",
+    "Systems & Tools": "The right digital and online tools help your team to be really effective with outbound activities.  To maximise their potential, make sure that they're fully integrated into your outbound strategy, then keep exploring features and integrations to see what you can steamline or automate. Think about how analytics and CRM tools can personalise and track engagement and if your team needs extra training to get the most out of the tools, make sure you offer it. "
+  }
+}

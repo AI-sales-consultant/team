@@ -1,0 +1,131 @@
+{
+  "userId": "yzx953921736@gmail.com",
+  "serviceOffering": {
+    "industry": {
+      "text": "1"
+    },
+    "business-challenge": {
+      "text": "1"
+    },
+    "service-type": {
+      "options": [
+        "Service"
+      ],
+      "additionalText": "",
+      "selectedOption": "Product"
+    },
+    "opportunity-type": {
+      "options": [
+        "Disruptor"
+      ],
+      "additionalText": "",
+      "selectedOption": "Competitive"
+    },
+    "concerns": {
+      "options": [
+        "Customer Acquisition"
+      ],
+      "additionalText": "",
+      "selectedOption": "Customer Acquisition"
+    },
+    "growth-route": {
+      "options": [
+        "Sales via a partner"
+      ],
+      "additionalText": "",
+      "selectedOption": "Direct Sales"
+    },
+    "business-age": {
+      "options": [
+        "3-5 years"
+      ],
+      "additionalText": "",
+      "selectedOption": "3-5 years"
+    },
+    "business-size-employees": {
+      "options": [
+        "5-15 people"
+      ],
+      "additionalText": "",
+      "selectedOption": "5-15 people"
+    },
+    "business-size-revenue": {
+      "options": [
+        "£1m - £2.5m"
+      ],
+      "additionalText": "",
+      "selectedOption": "£1m - £2.5m"
+    },
+    "paying-clients": {
+      "options": [
+        "4 to 8"
+      ],
+      "additionalText": "",
+      "selectedOption": "9 plus"
+    },
+    "biggest-client-revenue": {
+      "options": [
+        "25-50%"
+      ],
+      "additionalText": "",
+      "selectedOption": "25-50%"
+    },
+    "revenue-type": {
+      "options": [
+        "Multi-year recurring revenue"
+      ],
+      "additionalText": "",
+      "selectedOption": "Monthly recurring revenue"
+    },
+    "funding-status": {
+      "options": [
+        "Seed Funded"
+      ],
+      "additionalText": "",
+      "selectedOption": "Seed Funded"
+    },
+    "revenue-targets": {
+      "options": [
+        "50%+ growth"
+      ],
+      "additionalText": "",
+      "selectedOption": "100%+ growth"
+    },
+    "growth-ambitions": {
+      "options": [
+        "Regular, Steady growth"
+      ],
+      "additionalText": "",
+      "selectedOption": "Explosive growth"
+    },
+    "clients-needed": {
+      "options": [
+        "7+"
+      ],
+      "additionalText": "",
+      "selectedOption": "7+"
+    },
+    "preferred-revenue": {
+      "options": [
+        "Multi-year recurring revenue"
+      ],
+      "additionalText": "",
+      "selectedOption": "One-off fees"
+    },
+    "funding-plans": {
+      "options": [
+        "VC / Angel Investment"
+      ],
+      "additionalText": "",
+      "selectedOption": "VC / Angel Investment"
+    }
+  },
+  "pillarReports": {
+    "Go to Market": "You're on the right track but you'll benefit from refining your target client list. Think about segmenting clients to tailor your outreach more effectively. Expanding your research and pinpointing a refined list of target clients will help you know where to win.",
+    "Performance Metrics": "Think about the key stages of your funnel and the outcome you want for each one, then add relevant, measurable KPIs to reflect effectiveness. Everyone needs to know and understand what the KPIs are and as you track them, look for insights to help you refine your strategy and get closer to your targets. ",
+    "Commercial Essentials": "Your current documents are already effective but to improve them further, think about creating adaptable templates to suit different clients. Flexibility like this can speed up the agreement process and improve client satisfaction. Gathering client feedback can also identify areas you might need to simplify.",
+    "Optimal Processes": "A well-executed handoff process sets the stage for delivering on the promises you've made so far. It leads to higher client satisfaction and repeat business.  Think about putting a formal feedback loop in place with clients post-handoff to understand their experience and see where you can imporove. Consider project management tools or CRMs to streamline communication and make it accessible to the delivery team.",
+    "People, Structure & Culture": "Once you've got the right team in place, understanding member's aspirations and potential can unlock more success. Keep asking how you can foster skills development & career growth and encourage cross-functional projects & knowledge sharing. You might find hidden talents. Being proactive about talent management makes for an agile team that can evolve as your business does. ",
+    "Systems & Tools": "If you're just at the start of really using your CRM, first do an audit of your current setup and how your team uses it. Find any gaps that could make the sales process better and start to explore advanced features or add-ons that will bring automation, deeper analytics or integrate with other tools your team uses. Encourage them to share insights and suggestions for any CRM improvements and consider setting up more detailed reporting and dashboards for a greater view of sales performance. "
+  }
+}

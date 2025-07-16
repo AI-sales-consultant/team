@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>API Test</title>
+</head>
+<body>
+    <h1>API Test</h1>
+    <button onclick="testLLMAdvice()">Test LLM Advice API</button>
+    <button onclick="testSaveReport()">Test Save Report API</button>
+    <div id="result"></div>
+
+    <script>
+        async function testLLMAdvice() {
+            try {
+                const response = await fetch("/api/llm-advice", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        userId: "test@example.com",
+                        assessmentData: {
+                            "industry": { "text": "Technology" },
+                            "business-challenge": { "text": "Scaling operations" }
+                        }
+                    })
+                });
+                
+                const data = await response.json();
+                document.getElementById("result").innerHTML = 
+                    `<h3>LLM Advice Response:</h3><pre>${JSON.stringify(data, null, 2)}</pre>`;
+            } catch (error) {
+                document.getElementById("result").innerHTML = 
+                    `<h3>Error:</h3><pre>${error.message}</pre>`;
+            }
+        }
+
+        async function testSaveReport() {
+            try {
+                const response = await fetch("http://127.0.0.1:8000/api/save-user-report", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        serviceOffering: {
+                            "industry": { "text": "Technology" }
+                        }
+                    })
+                });
+                
+                const data = await response.json();
+                document.getElementById("result").innerHTML = 
+                    `<h3>Save Report Response:</h3><pre>${JSON.stringify(data, null, 2)}</pre>`;
+            } catch (error) {
+                document.getElementById("result").innerHTML = 
+                    `<h3>Error:</h3><pre>${error.message}</pre>`;
+            }
+        }
+    </script>
+</body>
+</html> 
