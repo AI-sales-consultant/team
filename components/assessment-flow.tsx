@@ -208,6 +208,8 @@ export function AssessmentFlow() {
     if (state.currentStep === 0) {
       // Service Offering 步骤的完成检查
       const requiredQuestions = [
+        "industry",           // 文本题
+        "business-challenge", // 文本题
         "service-type",
         "opportunity-type",
         "concerns",
@@ -230,11 +232,17 @@ export function AssessmentFlow() {
         const answer = state.answers[questionId]
         if (!answer) return false
 
-        // answer 结构：{ options?: string[]; additionalText?: string }
-        const hasOptions = Array.isArray(answer.options) && answer.options.length > 0
-        const hasText = typeof answer.additionalText === "string" && answer.additionalText.trim() !== ""
+        // 选择题：检查 selectedOption
+        if (answer.selectedOption) {
+          return answer.selectedOption.trim() !== ""
+        }
+        
+        // 文本题：检查 text
+        if (answer.text) {
+          return answer.text.trim() !== ""
+        }
 
-        return hasOptions || hasText
+        return false
       })
     } else if (state.currentStep === 1) {
       // Base Camp for Success 步骤的完成检查
@@ -374,7 +382,7 @@ export function AssessmentFlow() {
           console.log("🚀 开始发送数据到后端...")
           console.log("📤 发送的数据:", newJsonData)
           
-          const response = await fetch("http://127.0.0.1:8000/api/save-user-report", {
+          const response = await fetch("http://localhost:8000/api/save-user-report", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(newJsonData)
