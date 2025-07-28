@@ -76,7 +76,46 @@ team/
 └── tsconfig.json         # TypeScript配置
 ```
 
-## 启动步骤
+## 启动指南
+
+### 前端启动
+```bash
+# 在项目根目录
+npm run dev
+# 访问: http://localhost:3000
+```
+
+### 后端启动
+```bash
+# 进入后端目录
+cd backend/Fastapi
+
+# 方式1: 使用完整版本 (需要Azure凭据)
+uvicorn main:app --reload --host 127.0.0.1 --port 8000
+
+# 方式2: 使用安全版本 (无需Azure凭据)
+python main_safe.py
+
+# 访问: http://127.0.0.1:8000
+# API文档: http://127.0.0.1:8000/docs
+```
+
+## 环境变量配置
+
+在 `backend/Fastapi/.env` 文件中配置：
+
+```env
+# Azure OpenAI 配置
+AZURE_OPENAI_API_KEY=your_actual_api_key_here
+AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com/
+AZURE_OPENAI_DEPLOYMENT=your-deployment-name
+
+# Azure Cosmos DB 配置
+COSMOS_ENDPOINT=https://your-cosmos-account.documents.azure.com:443/
+COSMOS_KEY=your_actual_cosmos_key_here
+```
+
+## 详细启动步骤
 
 ### 1. 克隆项目
 
@@ -354,4 +393,4 @@ python -m pytest tests/
 
 1. 检查 `backend/Fastapi/.env` 文件中的 Cosmos DB 配置
 2. 确保使用了正确的环境变量名称（`COSMOS_ENDPOINT` 和 `COSMOS_KEY`）
-3. 验证 Azure Cosmos DB 的访问密钥是否正确 
+3. 验证 Azure Cosmos DB 的访问密钥是否正确
