@@ -67,3 +67,89 @@
     @apply bg-background text-foreground;
   }
 }
+
+@layer utilities {
+  /* Custom animations for enhanced UX */
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes slide-in-right {
+    from {
+      opacity: 0;
+      transform: translateX(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  @keyframes progress-glow {
+    0%, 100% {
+      box-shadow: 0 0 5px rgba(59, 130, 246, 0.5);
+    }
+    50% {
+      box-shadow: 0 0 20px rgba(59, 130, 246, 0.8);
+    }
+  }
+
+  @keyframes pulse-slow {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.7;
+    }
+  }
+
+  .animate-fade-in {
+    animation: fade-in 0.5s ease-out;
+  }
+
+  .animate-slide-in-right {
+    animation: slide-in-right 0.3s ease-out;
+  }
+
+  .animate-progress-glow {
+    animation: progress-glow 2s ease-in-out infinite;
+  }
+
+  .animate-pulse-slow {
+    animation: pulse-slow 3s ease-in-out infinite;
+  }
+
+  /* Smooth transitions for question expansion */
+  .question-expand-enter {
+    max-height: 0;
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+
+  .question-expand-enter-active {
+    max-height: 500px;
+    opacity: 1;
+    transform: translateY(0);
+    transition: all 500ms ease-in-out;
+  }
+
+  .question-expand-exit {
+    max-height: 500px;
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .question-expand-exit-active {
+    max-height: 0;
+    opacity: 0;
+    transform: translateY(-10px);
+    transition: all 500ms ease-in-out;
+  }
+}

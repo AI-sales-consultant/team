@@ -161,34 +161,42 @@ const serviceOfferingQuestions: Question[] = [
 interface ServiceOfferingQuestionsProps {
   answers: Record<string, any>
   onAnswer: (questionId: string, answer: any) => void
+  scrollToNextQuestion: (currentQuestionId: string, questions: any[]) => void
 }
 
-export function ServiceOfferingQuestions({ answers, onAnswer }: ServiceOfferingQuestionsProps) {
-  const [expandedQuestions, setExpandedQuestions] = useState<Set<string>>(new Set([serviceOfferingQuestions[0].id]))
+export function ServiceOfferingQuestions({ answers, onAnswer, scrollToNextQuestion }: ServiceOfferingQuestionsProps) {
+  // State to manage which questions are expanded
+  const [expandedQuestions, setExpandedQuestions] = useState<Set<string>>(new Set())
 
   const toggleQuestion = (questionId: string) => {
-    const newExpanded = new Set(expandedQuestions)
-    if (newExpanded.has(questionId)) {
-      newExpanded.delete(questionId)
-    } else {
-      newExpanded.add(questionId)
-    }
-    setExpandedQuestions(newExpanded)
+    setExpandedQuestions((prev) => {
+      const newExpanded = new Set(prev)
+      if (newExpanded.has(questionId)) {
+        newExpanded.delete(questionId)
+      } else {
+        newExpanded.add(questionId)
+      }
+      return newExpanded
+    })
   }
 
   const handleOptionSelect = (questionId: string, option: string) => {
     const currentAnswer = answers[questionId] || { selectedOption: "", additionalText: "" }
+
     onAnswer(questionId, {
       ...currentAnswer,
       selectedOption: option,
     })
-    // 自动跳转到下一题
-      const currentIndex = serviceOfferingQuestions.findIndex((q) => q.id === questionId)
-      if (currentIndex < serviceOfferingQuestions.length - 1) {
-        const nextQuestionId = serviceOfferingQuestions[currentIndex + 1].id
-        setTimeout(() => {
-          setExpandedQuestions(new Set([nextQuestionId]))
-        }, 300)
+
+    // Auto-expand next question with enhanced animation
+    const currentIndex = serviceOfferingQuestions.findIndex((q) => q.id === questionId)
+    if (currentIndex < serviceOfferingQuestions.length - 1) {
+      const nextQuestionId = serviceOfferingQuestions[currentIndex + 1].id
+      setTimeout(() => {
+        setExpandedQuestions(new Set([nextQuestionId]))
+        // Auto scroll to next question
+        scrollToNextQuestion(questionId, serviceOfferingQuestions)
+      }, 500) // Increased delay for better UX
     }
   }
 
@@ -203,15 +211,11 @@ export function ServiceOfferingQuestions({ answers, onAnswer }: ServiceOfferingQ
   const isQuestionCompleted = (question: Question) => {
     const answer = answers[question.id]
     if (!answer) return false
+
     if (question.type === "text") {
-      // 文本题：只要有内容就算完成
-      return answer.text && answer.text.trim() !== ""
-    }
-    // 单选题：只要选了一个选项或填写了附加信息就算完成
-    if (question.type === "multiple-choice") {
-      const hasOption = typeof answer.selectedOption === "string" && answer.selectedOption.trim() !== ""
-      const hasText = typeof answer.additionalText === "string" && answer.additionalText.trim() !== ""
-      return hasOption || hasText
+      return answer.additionalText && answer.additionalText.trim() !== ""
+    } else if (question.type === "multiple-choice") {
+      return answer.selectedOption && answer.selectedOption.trim() !== ""
     }
     return false
   }
@@ -221,59 +225,74 @@ export function ServiceOfferingQuestions({ answers, onAnswer }: ServiceOfferingQ
     if (currentIndex < serviceOfferingQuestions.length - 1) {
       const nextQuestionId = serviceOfferingQuestions[currentIndex + 1].id
       setExpandedQuestions(new Set([nextQuestionId]))
+      // Auto scroll to next question
+      scrollToNextQuestion(questionId, serviceOfferingQuestions)
     }
   }
 
   return (
-    <div className="space-y-4">
-      {serviceOfferingQuestions.map((question, index) => {
+    <div className="space-y-6">
+      {serviceOfferingQuestions.map((question) => {
         const isExpanded = expandedQuestions.has(question.id)
         const isCompleted = isQuestionCompleted(question)
         const currentAnswer = answers[question.id] || { selectedOption: "", additionalText: "" }
 
         return (
-          <Card key={question.id} className="bg-slate-800 border-slate-700">
+          <Card 
+            key={question.id} 
+            id={`question-${question.id}`}
+            className={`bg-white border-gray-200 shadow-sm hover:shadow-md transition-all duration-300 transform hover:scale-[1.01] ${
+              isCompleted ? 'bg-green-50 border-green-200' : ''
+            }`}
+          >
             <CardContent className="p-6">
               <button
                 onClick={() => toggleQuestion(question.id)}
-                className="flex items-center justify-between w-full text-left mb-4"
+                className="flex items-center justify-between w-full text-left mb-4 group"
               >
                 <div className="flex items-center space-x-3">
-                  <h3 className="text-lg font-semibold text-white">{question.title}</h3>
-                  {isCompleted && (
-                    <div className="bg-green-600 text-white px-2 py-1 rounded text-xs font-medium">Complete</div>
+                  <h3 className="text-lg font-semibold text-gray-900 group-hover:text-blue-600 transition-colors duration-200">{question.title}</h3>
+                </div>
+                <div className="transition-transform duration-300 ease-in-out">
+                  {isExpanded ? (
+                    <ChevronUp className="w-5 h-5 text-gray-500 group-hover:text-blue-600 transition-all duration-200 transform rotate-180" />
+                  ) : (
+                    <ChevronDown className="w-5 h-5 text-gray-500 group-hover:text-blue-600 transition-all duration-200" />
                   )}
                 </div>
-                {isExpanded ? (
-                  <ChevronUp className="w-5 h-5 text-slate-400" />
-                ) : (
-                  <ChevronDown className="w-5 h-5 text-slate-400" />
-                )}
               </button>
 
-              {isExpanded && (
-                <div className="space-y-4">
-                  {question.type === "text" && (
-                    <Textarea
-                      value={currentAnswer.text || ""}
-                      onChange={e => onAnswer(question.id, { text: e.target.value })}
-                      placeholder={question.id === "industry" ? "Please enter your industry" : "Please enter your challenge"}
-                      className="bg-slate-700 border-slate-600 text-white placeholder:text-slate-400 min-h-[60px]"
-                    />
-                  )}
-                  {question.type === "multiple-choice" && (
+              <div className={`overflow-hidden transition-all duration-500 ease-in-out ${
+                isExpanded ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'
+              }`}>
+                <div className={`space-y-4 transform transition-all duration-500 ${
+                  isExpanded ? 'translate-y-0' : '-translate-y-4'
+                }`}>
+                  {question.type === "text" ? (
+                    <div className="space-y-2">
+                      <Textarea
+                        value={currentAnswer.additionalText || ""}
+                        onChange={(e) => handleTextChange(question.id, e.target.value)}
+                        placeholder="Please provide your answer"
+                        className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-400 min-h-[80px] focus:border-blue-500 focus:ring-blue-500 transition-all duration-200"
+                      />
+                    </div>
+                  ) : (
                     <div className="space-y-3">
                       <div className="flex flex-wrap gap-3">
-                        {question.options?.map((option) => (
+                        {question.options?.map((option, optionIndex) => (
                           <Button
                             key={option}
                             variant={currentAnswer.selectedOption === option ? "default" : "outline"}
                             onClick={() => handleOptionSelect(question.id, option)}
-                            className={
+                            className={`transition-all duration-300 transform hover:scale-105 ${
                               currentAnswer.selectedOption === option
-                                ? "bg-slate-600 text-white border-slate-500"
-                                : "bg-transparent text-slate-300 border-slate-600 hover:bg-slate-700"
-                            }
+                                ? "bg-blue-600 text-white border-blue-500 hover:bg-blue-700 shadow-lg"
+                                : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50 hover:border-gray-400"
+                            }`}
+                            style={{
+                              animationDelay: `${optionIndex * 100}ms`
+                            }}
                           >
                             {option}
                           </Button>
@@ -281,33 +300,36 @@ export function ServiceOfferingQuestions({ answers, onAnswer }: ServiceOfferingQ
                       </div>
                     </div>
                   )}
+
                   {question.additionalInfo && (
                     <div className="space-y-2">
-                      <label className="text-sm text-slate-300">Please provide additional information (optional)</label>
+                      <label className="text-sm font-medium text-gray-700">
+                        Additional Information (Optional)
+                      </label>
                       <Textarea
                         value={currentAnswer.additionalText || ""}
                         onChange={(e) => handleTextChange(question.id, e.target.value)}
                         placeholder="Please provide additional information"
-                        className="bg-slate-700 border-slate-600 text-white placeholder:text-slate-400 min-h-[80px]"
+                        className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-400 min-h-[80px] focus:border-blue-500 focus:ring-blue-500 transition-all duration-200"
                       />
                     </div>
                   )}
+
+
                 </div>
-              )}
+              </div>
 
               {!isExpanded && isCompleted && (
-                <div className="text-sm text-slate-400">
-                  {question.type === "text" && currentAnswer.text}
-                  {question.type === "multiple-choice" && (
-                    <>
-                      Selected: {currentAnswer.selectedOption}
-                      {currentAnswer.additionalText && (
-                        <div className="mt-1 text-xs">
-                          Additional info: {currentAnswer.additionalText.substring(0, 100)}
-                          {currentAnswer.additionalText.length > 100 && "..."}
-                        </div>
-                      )}
-                    </>
+                <div className="text-sm text-gray-600 animate-fade-in">
+                  {question.type === "text" ? (
+                    <span>Answered: {currentAnswer.additionalText?.substring(0, 50)}...</span>
+                  ) : (
+                    <span>Selected: {currentAnswer.selectedOption}</span>
+                  )}
+                  {currentAnswer.additionalText && question.additionalInfo && (
+                    <div className="mt-1 text-xs text-gray-500">
+                      Additional info provided
+                    </div>
                   )}
                 </div>
               )}
