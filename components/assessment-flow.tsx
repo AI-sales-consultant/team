@@ -12,6 +12,7 @@ import { StreamliningClimbQuestions } from "./streamlining-climb-questions"
 import { AssemblingTeamQuestions } from "./assembling-team-questions"
 import { ToolboxSuccessQuestions } from "./toolbox-success-questions"
 import { calculateAllPillarScores, calculateCategoryScores, saveScoresToFile, getAllPillarReports, CATEGORY_MAPPING } from "@/lib/score-calculator"
+import { useState, useEffect } from "react"
 
 const assessmentSteps = [
   { id: "service-offering", title: "Service Offering", completed: false },
@@ -200,6 +201,34 @@ export function generateNewJsonFormat(answers: Record<string, any>) {
 export function AssessmentFlow() {
   const { state, dispatch } = useAssessment()
   const router = useRouter()
+  const [showFloatingProgress, setShowFloatingProgress] = useState(false)
+
+  // 监听滚动事件来控制浮动进度条的显示
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowFloatingProgress(window.scrollY > 100)
+    }
+
+    window.addEventListener("scroll", handleScroll)
+    return () => window.removeEventListener("scroll", handleScroll)
+  }, [])
+
+  // 自动滚动到下一个问题的函数
+  const scrollToNextQuestion = (currentQuestionId: string, questions: any[]) => {
+    const currentIndex = questions.findIndex((q) => q.id === currentQuestionId)
+    if (currentIndex < questions.length - 1) {
+      const nextQuestionId = questions[currentIndex + 1].id
+      const nextQuestionElement = document.getElementById(`question-${nextQuestionId}`)
+      if (nextQuestionElement) {
+        setTimeout(() => {
+          nextQuestionElement.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'center' 
+          })
+        }, 300)
+      }
+    }
+  }
 
   const currentStepData = assessmentSteps[state.currentStep]
 
@@ -237,9 +266,9 @@ export function AssessmentFlow() {
           return answer.selectedOption.trim() !== ""
         }
         
-        // 文本题：检查 text
-        if (answer.text) {
-          return answer.text.trim() !== ""
+        // 文本题：检查 additionalText
+        if (answer.additionalText) {
+          return answer.additionalText.trim() !== ""
         }
 
         return false
@@ -432,6 +461,64 @@ export function AssessmentFlow() {
     completed: state.completedSteps.has(index), // 只有明确完成的步骤才显示为completed
   }))
 
+  // 统计所有题目和已完成题目数
+  const allSections = [
+    {
+      id: 'service-offering',
+      questions: [
+        "industry", "business-challenge", "service-type", "opportunity-type", "concerns", "growth-route", "business-age", "business-size-employees", "business-size-revenue", "paying-clients", "biggest-client-revenue", "revenue-type", "funding-status", "revenue-targets", "growth-ambitions", "clients-needed", "preferred-revenue", "funding-plans"
+      ]
+    },
+    {
+      id: 'base-camp',
+      questions: [
+        "target-niche", "pinpoint-clients", "targeted-pipeline", "know-buyers", "clear-problems", "proven-approach", "partners-resellers", "account-management", "global-growth", "know-competitors"
+      ]
+    },
+    {
+      id: 'tracking-climb',
+      questions: [
+        "commercial-performance", "revenue-profit-targets", "pipeline-management", "great-sale-recognition", "three-year-targets", "kpis-metrics"
+      ]
+    },
+    {
+      id: 'scaling-essentials',
+      questions: [
+        "objections-techniques", "commercial-model", "pricing-testing", "terms-conditions"
+      ]
+    },
+    {
+      id: 'streamlining-climb',
+      questions: [
+        "outbound-sales-approach", "marketing-brand-awareness", "lead-qualification", "delivery-handoff"
+      ]
+    },
+    {
+      id: 'assembling-team',
+      questions: [
+        "team-structure", "right-people-roles", "compensation-plans", "sales-culture", "performance-management"
+      ]
+    },
+    {
+      id: 'toolbox-success',
+      questions: [
+        "central-shared-drive", "client-collateral", "capability-demonstration", "digital-tools", "crm-implementation"
+      ]
+    }
+  ]
+
+  const totalQuestions = allSections.reduce((sum, section) => sum + section.questions.length, 0)
+  const completedQuestions = allSections.reduce((sum, section) =>
+    sum + section.questions.filter(qid => {
+      const answer = state.answers[qid]
+      if (!answer) return false
+      if (answer.selectedOption) return answer.selectedOption.trim() !== ""
+      if (answer.additionalText) return answer.additionalText.trim() !== ""
+      return false
+    }).length, 0
+  )
+  const progressPercent = Math.round((completedQuestions / totalQuestions) * 100)
+
   return (
     <div className="flex min-h-screen">
       <AssessmentSidebar
@@ -440,43 +527,133 @@ export function AssessmentFlow() {
         onStepClick={(step) => dispatch({ type: "SET_STEP", payload: step })}
       />
 
-      <div className="flex-1 p-8">
-        <div className="max-w-4xl mx-auto">
+      <div className="flex-1 bg-white relative">
+        <div className="max-w-4xl mx-auto p-8">
+          {/* Enhanced Progress Indicator */}
           <div className="mb-8">
             <div className="flex items-center justify-between mb-4">
-              <h1 className="text-3xl font-bold text-white">{currentStepData.title}</h1>
-              {isCurrentStepCompleted() && (
-                <div className="bg-green-600 text-white px-3 py-1 rounded-full text-sm font-medium">Complete</div>
-              )}
+              <div className="flex-1">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-gray-700">
+                    {completedQuestions} / {totalQuestions} questions completed
+                  </span>
+                  <span className="text-sm text-gray-500">
+                    {progressPercent}% Complete
+                  </span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                  <div 
+                    className="bg-gradient-to-r from-blue-500 to-blue-600 h-3 rounded-full transition-all duration-700 ease-out transform origin-left"
+                    style={{ 
+                      width: `${progressPercent}%`
+                    }}
+                  >
+                  </div>
+                </div>
+              </div>
             </div>
-            <p className="text-slate-300">
+          </div>
+
+          <div className="mb-8">
+            <div className="flex items-center justify-between mb-4">
+              <h1 className="text-3xl font-bold text-gray-900">{currentStepData.title}</h1>
+            </div>
+            <p className="text-gray-600 mb-4">
               Please answer the following questions as accurately as possible. Make your choice, provide any additional
-              relevant info, then click 'Next' to complete each question.
+              relevant info.
             </p>
+            
+            {/* Improved Value Proposition */}
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-6 mb-6 shadow flex items-center">
+              <div className="flex-shrink-0">
+                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mr-6 animate-bounce-slow">
+                  {/* 更大icon，可以换成你喜欢的svg或emoji */}
+                  <span className="text-4xl">🚀</span>
+                </div>
+              </div>
+              <div className="flex-1">
+                <h3 className="text-xl font-bold text-blue-900 mb-1">Transform Your Business Journey</h3>
+                <p className="text-base text-blue-800 leading-relaxed">
+                  <span className="font-semibold">💼 Unlock insights & strategies to scale faster.</span><br/>
+                  <span className="text-gray-700">📊 Get a growth roadmap tailored for your business — in minutes.</span>
+                </p>
+              </div>
+            </div>
           </div>
 
           {/* 根据当前步骤显示不同的问卷 */}
-          {state.currentStep === 0 && <ServiceOfferingQuestions answers={state.answers} onAnswer={handleAnswer} />}
-          {state.currentStep === 1 && <BaseCampQuestions answers={state.answers} onAnswer={handleAnswer} />}
-          {state.currentStep === 2 && <TrackingClimbQuestions answers={state.answers} onAnswer={handleAnswer} />}
-          {state.currentStep === 3 && <ScalingEssentialsQuestions answers={state.answers} onAnswer={handleAnswer} />}
-          {state.currentStep === 4 && <StreamliningClimbQuestions answers={state.answers} onAnswer={handleAnswer} />}
-          {state.currentStep === 5 && <AssemblingTeamQuestions answers={state.answers} onAnswer={handleAnswer} />}
-          {state.currentStep === 6 && <ToolboxSuccessQuestions answers={state.answers} onAnswer={handleAnswer} />}
+          {state.currentStep === 0 && <ServiceOfferingQuestions answers={state.answers} onAnswer={handleAnswer} scrollToNextQuestion={scrollToNextQuestion} />}
+          {state.currentStep === 1 && <BaseCampQuestions answers={state.answers} onAnswer={handleAnswer} scrollToNextQuestion={scrollToNextQuestion} />}
+          {state.currentStep === 2 && <TrackingClimbQuestions answers={state.answers} onAnswer={handleAnswer} scrollToNextQuestion={scrollToNextQuestion} />}
+          {state.currentStep === 3 && <ScalingEssentialsQuestions answers={state.answers} onAnswer={handleAnswer} scrollToNextQuestion={scrollToNextQuestion} />}
+          {state.currentStep === 4 && <StreamliningClimbQuestions answers={state.answers} onAnswer={handleAnswer} scrollToNextQuestion={scrollToNextQuestion} />}
+          {state.currentStep === 5 && <AssemblingTeamQuestions answers={state.answers} onAnswer={handleAnswer} scrollToNextQuestion={scrollToNextQuestion} />}
+          {state.currentStep === 6 && <ToolboxSuccessQuestions answers={state.answers} onAnswer={handleAnswer} scrollToNextQuestion={scrollToNextQuestion} />}
 
           {/* 底部按钮 */}
           <div className="flex justify-between mt-12">
             <Button
               onClick={handleCompleteSection}
               disabled={!isCurrentStepCompleted()}
-              className={`px-8 py-2 rounded-full ${
+              className={`px-8 py-2 rounded-full transition-all duration-300 ${
                 isCurrentStepCompleted()
-                  ? "bg-slate-600 hover:bg-slate-700 text-white"
-                  : "bg-slate-800 text-slate-500 cursor-not-allowed"
+                  ? "bg-blue-600 hover:bg-blue-700 text-white transform hover:scale-105"
+                  : "bg-gray-300 text-gray-500 cursor-not-allowed"
               }`}
             >
               {state.currentStep === assessmentSteps.length - 1 ? "Complete Assessment" : "Complete section"}
             </Button>
+          </div>
+        </div>
+
+        {/* Floating Progress Column - Always visible in top-right corner */}
+        <div className="fixed top-8 right-8 z-50">
+          <div className="bg-white rounded-lg shadow-xl border border-gray-200 p-4 w-64">
+            <div className="text-center mb-4">
+              <h4 className="text-sm font-semibold text-gray-900 mb-2">Assessment Progress</h4>
+              <div className="text-2xl font-bold text-blue-600">
+                {progressPercent}%
+              </div>
+            </div>
+            <div className="space-y-2">
+              {assessmentSteps.map((step, index) => (
+                <div key={index} className="flex items-center space-x-2">
+                  <div className={`w-3 h-3 rounded-full ${
+                    allSections[index] && allSections[index].questions.every(qid => {
+                      const answer = state.answers[qid]
+                      if (!answer) return false
+                      if (answer.selectedOption) return answer.selectedOption.trim() !== ""
+                      if (answer.additionalText) return answer.additionalText.trim() !== ""
+                      return false
+                    })
+                      ? 'bg-green-500' 
+                      : index === state.currentStep 
+                      ? 'bg-blue-500 animate-pulse' 
+                      : 'bg-gray-300'
+                  }`}></div>
+                  <span className={`text-xs ${
+                    allSections[index] && allSections[index].questions.every(qid => {
+                      const answer = state.answers[qid]
+                      if (!answer) return false
+                      if (answer.selectedOption) return answer.selectedOption.trim() !== ""
+                      if (answer.additionalText) return answer.additionalText.trim() !== ""
+                      return false
+                    })
+                      ? 'text-green-600 font-medium' 
+                      : index === state.currentStep 
+                      ? 'text-blue-600 font-semibold' 
+                      : 'text-gray-400'
+                  }`}>
+                    {step.title}
+                  </span>
+                </div>
+              ))}
+            </div>
+            <div className="mt-4 pt-4 border-t border-gray-200">
+              <div className="text-xs text-gray-500 text-center">
+                {completedQuestions} / {totalQuestions} questions completed
+              </div>
+            </div>
           </div>
         </div>
       </div>
