@@ -66,7 +66,6 @@ def check_weighting(rules, service_offering):
 # 1. 保存用户报告
 @app.post("/api/save-user-report", response_model=SaveReportResponse)
 async def save_user_report(data: AssessmentData):
-    print("收到数据", data.dict())
     # 这里可以保存到数据库或文件
     return {
         "status": "success",
@@ -81,12 +80,18 @@ async def save_user_report(data: AssessmentData):
 
 @app.post("/api/llm-advice", response_model=LLMAdviceResponse)
 async def get_llm_advice(request: LLMAdviceRequest):
-    print("收到评估数据：", request.dict()) 
     frontend_data = request.dict()
     assessment_data = frontend_data['assessmentData']
     service_offering = assessment_data['serviceOffering']
     score_rules = load_score_rules('api/score_rule.csv')
     all_questions = []
+    
+    # Extract business profile fields from service offering
+    industry = service_offering.get('industry', {}).get('text', '')
+    business_challenge = service_offering.get('business_challenge', {}).get('text', '')
+    service_type = service_offering.get('service_type', {}).get('text', '')
+    revenue_type = service_offering.get('revenue_type', {}).get('text', '')
+    
     # 1. 收集所有问题，按顺序编号
     for section_key, section in assessment_data.items():
         if section_key == "serviceOffering":
@@ -122,13 +127,15 @@ async def get_llm_advice(request: LLMAdviceRequest):
         base_text = get_answer_text(question_id, new_category)
         if base_text is None:
             base_text = "未找到数据库答案。"
-        # 构建prompt
+        # 构建prompt with new business profile fields
         prompt = USER_PROMPT_TEMPLATE.format(
-            industry=service_offering['industry']['text'],
+            industry=industry,
+            business_challenge=business_challenge,
+            service_type=service_type,
+            revenue_type=revenue_type,
             original_question=q.get('question', ''),
             retrieved_text=base_text,
             advice_type=new_category,
-            query=q.get('question', ''),
             user_answer=q.get('anwser', '')
         )
         # 调用LLM
@@ -136,7 +143,7 @@ async def get_llm_advice(request: LLMAdviceRequest):
             response = client.chat.completions.create(
                 model=os.getenv("AZURE_OPENAI_DEPLOYMENT"),
                 messages=[
-                    {"role": "system", "content": SYSTEM_PROMPT_TEMPLATE},
+                    {"role": "system", "content": SYSTEM_PROMPT_TEMPLATE.format(industry=industry)},
                     {"role": "user", "content": prompt}
                 ],
                 temperature=0.7,
@@ -145,17 +152,42 @@ async def get_llm_advice(request: LLMAdviceRequest):
             llm_response = response.choices[0].message.content
         except Exception as e:
             llm_response = f"LLM生成失败: {e}"
-        results.append(llm_response)
+        results.append({
+            "catmapping": q.get("catmapping", ""),
+            "category": q.get("category", ""),
+            "question": q.get("question", ""),
+            "advice": llm_response
+        })
 
-    # 拼接所有建议为一段文本
-    advice_text = "\n\n".join(results)
-    # 你可以在 advice_text 前加上标题或总结
-    advice_text = (
-        "Based on your assessment results, I provide the following business recommendations:\n\n"
-        + advice_text
-    )
-    print("LLM生成的建议:\n", advice_text)
+    # 4. 分阶段、分category分组
+    phase_map = {
+        "Profitable": "Phase 1 (Profitable)",
+        "Repeatable": "Phase 2 (Repeatable)",
+        "Scalable": "Phase 3 (Scalable)"
+    }
+    phase_order = ["Profitable", "Repeatable", "Scalable"]
+
+    # phase -> category -> [advice]
+    phase_grouped = {phase: defaultdict(list) for phase in phase_order}
+    for item in results:
+        phase = item["catmapping"]
+        category = item["category"]
+        if phase in phase_grouped:
+            phase_grouped[phase][category].append(item)
+
+    # 5. 拼接建议文本
+    advice_text = "Based on your assessment results, here are your business recommendations:\n\n"
+    for phase in phase_order:
+        phase_title = phase_map[phase]
+        advice_text += f"=== {phase_title} ===\n"
+        for category, items in phase_grouped[phase].items():
+            advice_text += f"\n【{category}】\n"
+            for item in items:
+                advice_text += f"- {item['question']}\n  {item['advice']}\n"
+        advice_text += "\n"
+
     return {
         "advice": advice_text,
-        "timestamp": datetime.utcnow().isoformat()
+        "timestamp": datetime.utcnow().isoformat(),
+        "confidence_score": 0.85
     }
