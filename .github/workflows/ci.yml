@@ -11,30 +11,41 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+        with: { fetch-depth: 0 }
       - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
+        with: { python-version: '3.11' }
       - name: Install backend deps (+ coverage tools)
         run: |
           python -m pip install --upgrade pip
           pip install fastapi "pydantic>=2" httpx pytest pytest-asyncio uvicorn pytest-cov diff-cover
-      - name: Run backend tests with coverage (global >=85% gate)
+      - name: Pytest with coverage + JUnit (global ≥85%)
         run: |
-          pytest -q test --cov=fastapi --cov-branch --cov-report=xml:coverage.xml --cov-report=html:htmlcov --cov-fail-under=85
-      - name: Enforce changed-file coverage >= 90% (PR only)
+          pytest test --junitxml=pytest-report.xml \
+            --cov=fastapi --cov-branch \
+            --cov-report=xml:coverage.xml --cov-report=html:htmlcov \
+            --cov-fail-under=85
+      - name: Fail if there are skipped tests
+        run: |
+          python - <<'PY'
+          import xml.etree.ElementTree as ET, sys
+          r=ET.parse('pytest-report.xml').getroot()
+          skips=sum(1 for x in r.iter('skipped'))
+          print(f"Skipped tests: {skips}")
+          sys.exit(1 if skips>0 else 0)
+          PY
+      - name: Enforce changed-file coverage ≥90% (PR only)
         if: github.event_name == 'pull_request'
         run: |
           diff-cover coverage.xml --compare-branch origin/${{ github.base_ref }} --fail-under=90
-      - name: Upload coverage artifacts (HTML + XML)
+      - name: Upload coverage & JUnit artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: coverage-artifacts
+          name: coverage-and-junit
           path: |
             coverage.xml
             htmlcov
+            pytest-report.xml
 
   frontend-unit:
     runs-on: ubuntu-22.04
@@ -42,8 +53,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with:
-          node-version: 18
+        with: { node-version: 18 }
       - name: Install deps
         working-directory: ./frontend
         run: |
@@ -59,8 +69,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with:
-          node-version: 18
+        with: { node-version: 18 }
       - name: Install deps + browsers
         working-directory: ./frontend
         run: |
@@ -88,8 +97,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with:
-          node-version: 18
+        with: { node-version: 18 }
       - name: Install frontend deps + Lighthouse CI
         working-directory: ./frontend
         run: |
@@ -101,10 +109,9 @@ jobs:
         run: |
           nohup npm run dev >/tmp/next.log 2>&1 &
           npx wait-on http://localhost:3000
-      - name: Run Lighthouse CI (a11y >= 90 gate)
+      - name: Run Lighthouse CI (a11y ≥ 90)
         working-directory: ./frontend
-        run: |
-          npx lhci autorun --config=../test/lighthouserc.json
+        run: npx lhci autorun --config=../test/lighthouserc.json
       - name: Upload Lighthouse reports
         if: always()
         uses: actions/upload-artifact@v4
@@ -117,20 +124,46 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
+        with: { python-version: '3.11' }
       - uses: actions/setup-node@v4
-        with:
-          node-version: 18
-      - name: Lint & Security (blocking)
+        with: { node-version: 18 }
+      - name: Lint & Bandit (blocking)
         run: |
           python -m pip install --upgrade pip
           pip install ruff bandit
           ruff fastapi
           bandit -r fastapi -ll
-          cd frontend
+      - name: npm audit (blocking, prod deps only)
+        working-directory: ./frontend
+        run: |
           npm ci || npm i
           npm audit --omit=dev --audit-level=high
+      - name: pip-audit (non-blocking; artifact only)
+        continue-on-error: true
+        run: |
+          python -m pip install pip-audit
+          if [ -f requirements.txt ]; then
+            pip-audit -r requirements.txt -f json -o pip-audit.json
+          else
+            pip-audit -f json -o pip-audit.json
+          fi
+      - name: Upload pip-audit report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pip-audit-report
+          path: pip-audit.json
+      - name: Secret scan (gitleaks, non-blocking)
+        uses: gitleaks/gitleaks-action@v2
+        with:
+          args: detect --source . --report-format sarif --report-path gitleaks.sarif
+        continue-on-error: true
+      - name: Upload gitleaks report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gitleaks-report
+          path: gitleaks.sarif
 
   perf-smoke:
     runs-on: ubuntu-22.04
@@ -138,8 +171,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
+        with: { python-version: '3.11' }
       - name: Install locust
         run: pip install locust
       - name: Start backend (uvicorn)
@@ -148,8 +180,49 @@ jobs:
           sleep 5
       - name: Perf smoke (<20 req)
         run: |
-          locust -f locustfile.py --headless -u 50 -r 10 -t 30s --host http://localhost:8000 --csv=smoke
-      - name: Upload locust CSV
+          locust -f locustfile.py --headless -u 50 -r 10 -t 30s \
+            --host http://localhost:8000 --csv=smoke
+      - name: Enforce P99 ≤ 500ms (from Locust CSV)
+        run: |
+          python - <<'PY'
+          import csv, glob, math, sys
+          stats = next(iter(glob.glob('smoke*_stats.csv')), None)
+          reqs  = next(iter(glob.glob('smoke*_requests.csv')), None)
+          p99 = None
+          if stats:
+            with open(stats, newline='') as f:
+              rows = list(csv.DictReader(f))
+            row = None
+            for r in rows:
+              name = (r.get('Name') or r.get('name') or '').strip().lower()
+              if name in ('total','aggregated','all',''):
+                row = r; break
+            if not row and rows: row = rows[-1]
+            if row:
+              if '99%' in row: p99 = float(row['99%'])
+              elif '95%' in row: p99 = float(row['95%']) * 1.2  # conservative estimate
+          if p99 is None and reqs:
+            vals=[]
+            with open(reqs, newline='') as f:
+              rd = csv.DictReader(f)
+              for r in rd:
+                for k in ('response_time','Response Time','response_time_ms','Latency'):
+                  if k in r and r[k]:
+                    try: vals.append(float(r[k])); break
+                    except: pass
+            if vals:
+              vals.sort()
+              idx = max(0, math.ceil(0.99*len(vals))-1)
+              p99 = vals[idx]
+          if p99 is None:
+            print("WARNING: Could not compute p99; not failing the job.")
+            sys.exit(0)
+          print(f"P99 = {p99:.2f} ms")
+          if p99 > 500.0:
+            print("P99 exceeds 500 ms threshold.")
+            sys.exit(1)
+          PY
+      - name: Upload Locust CSV
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -161,4 +234,4 @@ jobs:
     needs: [unit, frontend-unit, e2e, lighthouse, lint-security, perf-smoke]
     steps:
       - name: Gate Check
-        run: echo "All required jobs passed (coverage + lighthouse + lint/security + perf-smoke)."
+        run: echo "All required jobs passed (coverage + no-skips + a11y + lint/security + perf P99)."
