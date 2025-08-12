@@ -129,8 +129,8 @@ jobs:
           npm ci || npm i
           npm audit --omit=dev --audit-level=high
 
+ 
   perf-smoke:
-    if: contains(github.event.pull_request.labels.*.name, 'perf')
     runs-on: ubuntu-22.04
     needs: unit
     steps:
@@ -154,9 +154,11 @@ jobs:
           name: locust-smoke
           path: smoke*
 
+
   gate:
     runs-on: ubuntu-22.04
-    needs: [unit, frontend-unit, e2e, lighthouse, lint-security]
+    needs: [unit, frontend-unit, e2e, lighthouse, lint-security, perf-smoke]
     steps:
       - name: Gate Check
-        run: echo "All required jobs passed (coverage gates + Lighthouse a11y >= 90 + lint/security blocking)."
+        run: echo "All required jobs passed (coverage + lighthouse + lint/security + perf-smoke)."
+
