@@ -17,7 +17,7 @@ jobs:
       - name: Install backend deps (+ coverage tools)
         run: |
           python -m pip install --upgrade pip
-          pip install fastapi "pydantic>=2" httpx pytest pytest-asyncio uvicorn pytest-cov diff-cover
+          pip install python-dotenv fastapi "pydantic>=2" httpx pytest pytest-asyncio uvicorn pytest-cov diff-cover
       - name: Pytest with coverage + JUnit (global ≥85%)
         run: |
           pytest test --junitxml=pytest-report.xml \
@@ -131,7 +131,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install ruff bandit
-          ruff fastapi
+          ruff check fastapi
           bandit -r fastapi -ll
       - name: npm audit (blocking, prod deps only)
         working-directory: ./frontend
