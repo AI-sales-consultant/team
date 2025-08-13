@@ -13,7 +13,6 @@ jobs:
     name: Frontend E2E (Playwright)
     runs-on: ubuntu-latest
     timeout-minutes: 30
-
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
@@ -44,7 +43,7 @@ jobs:
       - name: Build frontend
         working-directory: ./frontend
         run: |
-          if [ -f pnpm-lock.yaml ]; then pnpm run build; else npm run build; fi
+          if [ -f pnpm-lock.yaml ] ; then pnpm run build ; else npm run build ; fi
 
       - name: Start frontend server (bg)
         run: |
@@ -63,7 +62,7 @@ jobs:
           ( [ -f test/package.json ] && ( npm -C test ci || npm -C test install ) ) || npm -C test install --no-save @axe-core/playwright
           npx playwright install --with-deps
 
-      - name: Run Playwright tests (trace/screenshot/video enabled, retries=1)
+      - name: Run Playwright tests (trace/screenshot/video, retries=1)
         env:
           CI: true
         run: npx playwright test -c test/playwright.config.ts
@@ -88,7 +87,6 @@ jobs:
     name: Backend Tests (pytest + coverage)
     runs-on: ubuntu-latest
     timeout-minutes: 15
-
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
@@ -119,7 +117,6 @@ jobs:
     name: Lighthouse CI
     runs-on: ubuntu-latest
     timeout-minutes: 20
-
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
@@ -143,7 +140,7 @@ jobs:
       - name: Build frontend
         working-directory: ./frontend
         run: |
-          if [ -f pnpm-lock.yaml ]; then pnpm run build; else npm run build; fi
+          if [ -f pnpm-lock.yaml ] ; then pnpm run build ; else npm run build ; fi
 
       - name: Start frontend server (bg)
         run: |
