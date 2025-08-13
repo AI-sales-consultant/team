@@ -4,7 +4,6 @@ on:
   push:
   pull_request:
 
-
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -61,11 +60,10 @@ jobs:
 
       - name: Install Playwright + browsers + a11y deps
         run: |
-          
           ( [ -f test/package.json ] && ( npm -C test ci || npm -C test install ) ) || npm -C test install --no-save @axe-core/playwright
           npx playwright install --with-deps
 
-      - name: Run Playwright tests
+      - name: Run Playwright tests (trace/screenshot/video enabled, retries=1)
         env:
           CI: true
         run: npx playwright test -c test/playwright.config.ts
@@ -78,9 +76,16 @@ jobs:
           path: test/playwright-report
           if-no-files-found: ignore
 
-  
+      - name: Upload Playwright traces
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-traces
+          path: test-results
+          if-no-files-found: ignore
+
   backend_pytest:
-    name: Backend Tests (pytest)
+    name: Backend Tests (pytest + coverage)
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -97,12 +102,19 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install fastapi starlette pydantic python-dotenv pytest
+          pip install fastapi starlette pydantic python-dotenv pytest pytest-cov
 
-      - name: Run pytest
+      - name: Run pytest with coverage gate (>=80%)
         run: pytest
 
- 
+      - name: Upload coverage.xml
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-xml
+          path: coverage.xml
+          if-no-files-found: ignore
+
   lighthouse:
     name: Lighthouse CI
     runs-on: ubuntu-latest
@@ -154,10 +166,6 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: lighthouse-results
-          path: ./.lighthouseci
-          if-no-files-found: ignore
-
           name: lighthouse-results
           path: ./.lighthouseci
           if-no-files-found: ignore
