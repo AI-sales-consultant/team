@@ -300,13 +300,12 @@ jobs:
           if-no-files-found: ignore
 
   # ------------------------------------------------
-  # 4) Frontend static quality: ESLint + TypeScript type check
+  # 4) Frontend static quality: ESLint + TypeScript type check (ENFORCED)
   # ------------------------------------------------
   frontend_quality:
     name: Frontend Lint & Type Check
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    continue-on-error: true   # observation mode; remove to enforce
     steps:
       - uses: actions/checkout@v4
 
@@ -333,7 +332,7 @@ jobs:
           if [ -f .eslintrc ] || [ -f .eslintrc.js ] || [ -f .eslintrc.cjs ] || [ -f .eslintrc.json ] || [ -f .eslintrc.yml ] || [ -f .eslintrc.yaml ] || node -e "try{process.exit(require('./package.json').scripts?.lint?0:1)}catch(e){process.exit(1)}"; then
             npx -y eslint@8 . --ext .js,.jsx,.ts,.tsx
           else
-            echo "No ESLint config/script found, skipping."
+            echo "No ESLint config/script found."; exit 1
           fi
 
       - name: Run TypeScript check (tsc --noEmit if tsconfig.json exists)
@@ -346,13 +345,12 @@ jobs:
           fi
 
   # ------------------------------------------------
-  # 5) Backend static quality: ruff (lint) + mypy (types)
+  # 5) Backend static quality: ruff (lint) + mypy (types) (ENFORCED)
   # ------------------------------------------------
   backend_quality:
     name: Backend Lint (ruff) & Type Check (mypy)
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    continue-on-error: true   # observation mode; remove to enforce
     steps:
       - uses: actions/checkout@v4
 
@@ -373,7 +371,7 @@ jobs:
         run: mypy fastapi --ignore-missing-imports --install-types --non-interactive
 
   # ------------------------------------------------
-  # 6) Performance smoke test (Locust 60s)
+  # 6) Performance smoke test (Locust 60s) (ENFORCED)
   # ------------------------------------------------
   perf_locust:
     name: Performance Smoke (Locust 60s)
@@ -419,13 +417,12 @@ jobs:
           if-no-files-found: ignore
 
   # ------------------------------------------------
-  # 7) Security audit: Python, Node, and secret leaks
+  # 7) Security audit: Python, Node, and secret leaks (ENFORCED)
   # ------------------------------------------------
   security_scan:
     name: Security Audit (pip & npm & secrets)
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    continue-on-error: true   # observation mode; remove to enforce
     steps:
       - uses: actions/checkout@v4
 
@@ -438,9 +435,9 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install pip-audit
           if [ -f requirements.txt ]; then
-            pip-audit -r requirements.txt -f json -o pip-audit.json || true
+            pip-audit -r requirements.txt -f json -o pip-audit.json
           else
-            pip-audit -f json -o pip-audit.json || true
+            pip-audit -f json -o pip-audit.json
           fi
       - name: Upload pip-audit report
         if: always()
@@ -458,7 +455,9 @@ jobs:
         working-directory: ./frontend
         run: |
           if [ -f package.json ]; then
-            npm audit --json > ../npm-audit.json || true
+            npm audit --json > ../npm-audit.json
+          else
+            echo "No package.json found in frontend."; exit 1
           fi
       - name: Upload npm-audit report
         if: always()
