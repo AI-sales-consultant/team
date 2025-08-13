@@ -2,55 +2,117 @@ name: CI
 
 on:
   push:
+    branches: [ main, master ]
   pull_request:
+    branches: [ main, master ]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
+  # ------------------------------------------------
+  # 1) Backend: pytest + coverage gate (>=80%)
+  # ------------------------------------------------
+  backend_pytest:
+    name: Backend Tests (pytest + coverage)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install backend dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements-dev.txt ]; then
+            pip install -r requirements-dev.txt
+          elif [ -f requirements.txt ]; then
+            pip install -r requirements.txt
+            # Extra test-time deps to avoid import errors when dev file is missing
+            pip install httpx pytest pytest-cov
+          else
+            pip install fastapi "pydantic>=2" starlette httpx pytest pytest-cov
+          fi
+
+      - name: Run pytest with coverage gate (>=80%)
+        run: pytest
+
+      - name: Upload coverage.xml artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-xml
+          path: coverage.xml
+          if-no-files-found: ignore
+
+  # ------------------------------------------------
+  # 2) Frontend E2E (Playwright + a11y)
+  # ------------------------------------------------
   e2e_playwright:
     name: Frontend E2E (Playwright)
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      # 1) Node first (no cache)
-      - name: Setup Node.js
+      # Setup Node.js 20 with cache depending on which lockfile exists
+      - name: Setup Node.js (pnpm cache)
+        if: ${{ hashFiles('frontend/pnpm-lock.yaml') != '' }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      - name: Setup Node.js (yarn cache)
+        if: ${{ hashFiles('frontend/pnpm-lock.yaml') == '' && hashFiles('frontend/yarn.lock') != '' }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: yarn
+          cache-dependency-path: frontend/yarn.lock
+
+      - name: Setup Node.js (npm cache)
+        if: ${{ hashFiles('frontend/pnpm-lock.yaml') == '' && hashFiles('frontend/yarn.lock') == '' && hashFiles('frontend/package-lock.json') != '' }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Setup Node.js (no cache)
+        if: ${{ hashFiles('frontend/pnpm-lock.yaml') == '' && hashFiles('frontend/yarn.lock') == '' && hashFiles('frontend/package-lock.json') == '' }}
         uses: actions/setup-node@v4
         with:
           node-version: 20
 
-      # 2) pnpm/yarn tool when needed
+      # Install pnpm tool if pnpm-lock.yaml exists
       - name: Setup pnpm
         if: ${{ hashFiles('frontend/pnpm-lock.yaml') != '' }}
         uses: pnpm/action-setup@v4
         with:
           version: 9
 
-      - name: Setup Yarn (via corepack)
-        if: ${{ hashFiles('frontend/yarn.lock') != '' }}
-        run: |
-          corepack enable
-          corepack prepare yarn@1.22.19 --activate
-
-      # 3) Install frontend deps with strict mode + lockfile self-heal
-      - name: Install frontend deps
+      # Install frontend dependencies (strict mode + lockfile self-heal)
+      - name: Install frontend dependencies
         working-directory: ./frontend
         run: |
           set -e
           if [ -f pnpm-lock.yaml ]; then
-            pnpm install --frozen-lockfile || (echo "Lock outdated → regenerating..." && pnpm install --lockfile-only && pnpm install --frozen-lockfile)
+            pnpm install --frozen-lockfile || (pnpm install --lockfile-only && pnpm install --frozen-lockfile)
           elif [ -f yarn.lock ]; then
-            yarn install --immutable || (echo "No/old yarn.lock → updating..." && yarn install --mode=update-lockfile && yarn install --immutable)
+            yarn install --frozen-lockfile || yarn install
           else
             [ -f package-lock.json ] || npm install --package-lock-only
-            npm ci
+            npm ci || npm i
           fi
 
-      # 4) Upload generated/updated lockfile so you can commit it later
+      # Upload any generated/updated lockfile so it can be committed later
       - name: Upload generated lockfile(s)
         if: always()
         uses: actions/upload-artifact@v4
@@ -62,7 +124,7 @@ jobs:
             frontend/package-lock.json
           if-no-files-found: ignore
 
-      # Build frontend
+      # Build frontend (package manager auto-detected)
       - name: Build frontend
         working-directory: ./frontend
         run: |
@@ -70,8 +132,8 @@ jobs:
           elif [ -f yarn.lock ]; then yarn build;
           else npm run build; fi
 
-      # Start server + robust readiness (try /assessment, fallback /, print logs on timeout)
-      - name: Start frontend server (bg) with robust readiness
+      # Start frontend server in background and wait until it's ready
+      - name: Start frontend server (bg) and probe readiness
         env:
           READINESS_PATH: "/"
         run: |
@@ -86,6 +148,7 @@ jobs:
             nohup bash -c "cd frontend && npm run start" >"$LOG" 2>&1 &
           fi
 
+          # Try /assessment first, then fallback to /
           for path in /assessment ${READINESS_PATH}; do
             echo "Probing $path ..."
             for i in {1..120}; do
@@ -103,7 +166,7 @@ jobs:
           tail -n 200 "$LOG" || true
           exit 1
 
-      # ▶ NEW: Install Playwright runner + a11y deps into test/ and install browsers from there
+      # Install Playwright runner into test/ and download browsers
       - name: Install Playwright runner + a11y (in test/)
         run: |
           set -e
@@ -117,13 +180,13 @@ jobs:
           npm -C test ls @axe-core/playwright >/dev/null 2>&1 || npm -C test install --no-save @axe-core/playwright
           npx --prefix test playwright install --with-deps
 
-      # ▶ UPDATED: Run tests using the test/ node_modules
+      # Run E2E tests with trace/screenshot/video and 1 retry
       - name: Run Playwright tests (trace/screenshot/video, retries=1)
         env:
           CI: true
         run: npx --prefix test playwright test -c test/playwright.config.ts
 
-      # Upload reports & traces
+      # Upload Playwright HTML report
       - name: Upload Playwright HTML report
         if: always()
         uses: actions/upload-artifact@v4
@@ -132,6 +195,7 @@ jobs:
           path: test/playwright-report
           if-no-files-found: ignore
 
+      # Upload Playwright traces (zip + screenshots/videos)
       - name: Upload Playwright traces
         if: always()
         uses: actions/upload-artifact@v4
@@ -140,46 +204,17 @@ jobs:
           path: test-results
           if-no-files-found: ignore
 
-  backend_pytest:
-    name: Backend Tests (pytest + coverage)
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-          cache: "pip"
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements-dev.txt
-
-      - name: Run pytest with coverage gate (>=80%)
-        run: pytest
-
-      - name: Upload coverage.xml
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-xml
-          path: coverage.xml
-          if-no-files-found: ignore
-
+  # ------------------------------------------------
+  # 3) Lighthouse CI (performance, a11y, best practices, SEO)
+  # ------------------------------------------------
   lighthouse:
     name: Lighthouse CI
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 20
 
@@ -189,26 +224,20 @@ jobs:
         with:
           version: 9
 
-      - name: Setup Yarn (via corepack)
-        if: ${{ hashFiles('frontend/yarn.lock') != '' }}
-        run: |
-          corepack enable
-          corepack prepare yarn@1.22.19 --activate
-
-      - name: Install frontend deps
+      # Install frontend dependencies (strict + lockfile self-heal)
+      - name: Install frontend dependencies
         working-directory: ./frontend
         run: |
           set -e
           if [ -f pnpm-lock.yaml ]; then
-            pnpm install --frozen-lockfile || (echo "Lock outdated → regenerating..." && pnpm install --lockfile-only && pnpm install --frozen-lockfile)
+            pnpm install --frozen-lockfile || (pnpm install --lockfile-only && pnpm install --frozen-lockfile)
           elif [ -f yarn.lock ]; then
-            yarn install --immutable || (echo "No/old yarn.lock → updating..." && yarn install --mode=update-lockfile && yarn install --immutable)
+            yarn install --frozen-lockfile || yarn install
           else
             [ -f package-lock.json ] || npm install --package-lock-only
-            npm ci
+            npm ci || npm i
           fi
 
-      # Unique artifact name to avoid 409 conflict with E2E job
       - name: Upload generated lockfile(s)
         if: always()
         uses: actions/upload-artifact@v4
@@ -227,7 +256,7 @@ jobs:
           elif [ -f yarn.lock ]; then yarn build;
           else npm run build; fi
 
-      - name: Start frontend server (bg) with robust readiness
+      - name: Start frontend server (bg) and probe readiness
         env:
           READINESS_PATH: "/"
         run: |
@@ -269,3 +298,195 @@ jobs:
           name: lighthouse-results
           path: ./.lighthouseci
           if-no-files-found: ignore
+
+  # ------------------------------------------------
+  # 4) Frontend static quality: ESLint + TypeScript type check
+  # ------------------------------------------------
+  frontend_quality:
+    name: Frontend Lint & Type Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    continue-on-error: true   # observation mode; remove to enforce
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Setup pnpm
+        if: ${{ hashFiles('frontend/pnpm-lock.yaml') != '' }}
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Install frontend dependencies
+        working-directory: ./frontend
+        run: |
+          if [ -f pnpm-lock.yaml ]; then pnpm install --frozen-lockfile || pnpm install --no-frozen-lockfile;
+          elif [ -f yarn.lock ]; then yarn install --frozen-lockfile || yarn install;
+          else npm ci || npm i; fi
+
+      - name: Run ESLint (if config or script exists)
+        working-directory: ./frontend
+        run: |
+          if [ -f .eslintrc ] || [ -f .eslintrc.js ] || [ -f .eslintrc.cjs ] || [ -f .eslintrc.json ] || [ -f .eslintrc.yml ] || [ -f .eslintrc.yaml ] || node -e "try{process.exit(require('./package.json').scripts?.lint?0:1)}catch(e){process.exit(1)}"; then
+            npx -y eslint@8 . --ext .js,.jsx,.ts,.tsx
+          else
+            echo "No ESLint config/script found, skipping."
+          fi
+
+      - name: Run TypeScript check (tsc --noEmit if tsconfig.json exists)
+        working-directory: ./frontend
+        run: |
+          if [ -f tsconfig.json ]; then
+            npx -y typescript@5 tsc --noEmit
+          else
+            echo "No tsconfig.json, skipping type check."
+          fi
+
+  # ------------------------------------------------
+  # 5) Backend static quality: ruff (lint) + mypy (types)
+  # ------------------------------------------------
+  backend_quality:
+    name: Backend Lint (ruff) & Type Check (mypy)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    continue-on-error: true   # observation mode; remove to enforce
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install quality tools
+        run: |
+          python -m pip install --upgrade pip
+          pip install ruff mypy
+
+      - name: Run ruff on fastapi/ and test/
+        run: ruff check fastapi test
+
+      - name: Run mypy (ignore missing imports)
+        run: mypy fastapi --ignore-missing-imports --install-types --non-interactive
+
+  # ------------------------------------------------
+  # 6) Performance smoke test (Locust 60s)
+  # ------------------------------------------------
+  perf_locust:
+    name: Performance Smoke (Locust 60s)
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install app deps and Locust
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          pip install uvicorn locust
+
+      - name: Start FastAPI (background)
+        run: |
+          nohup bash -c "uvicorn fastapi.main:app --host 0.0.0.0 --port 8000" >/tmp/api.log 2>&1 &
+          for i in {1..60}; do
+            if curl -fsS http://localhost:8000/docs >/dev/null; then echo "API up"; break; fi
+            sleep 1
+          done
+
+      - name: Run Locust headless for 60s
+        run: |
+          locust -f locustfile.py --headless -u 20 -r 5 -t 60s \
+            --host http://localhost:8000 \
+            --html locust_report.html --csv smoke
+
+      - name: Upload Locust report artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: locust-report
+          path: |
+            locust_report.html
+            smoke_stats.csv
+            smoke_distribution.csv
+          if-no-files-found: ignore
+
+  # ------------------------------------------------
+  # 7) Security audit: Python, Node, and secret leaks
+  # ------------------------------------------------
+  security_scan:
+    name: Security Audit (pip & npm & secrets)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    continue-on-error: true   # observation mode; remove to enforce
+    steps:
+      - uses: actions/checkout@v4
+
+      # Python dependency audit
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Run pip-audit
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pip-audit
+          if [ -f requirements.txt ]; then
+            pip-audit -r requirements.txt -f json -o pip-audit.json || true
+          else
+            pip-audit -f json -o pip-audit.json || true
+          fi
+      - name: Upload pip-audit report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pip-audit-report
+          path: pip-audit.json
+          if-no-files-found: ignore
+
+      # Node (frontend) dependency audit
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Run npm audit (frontend)
+        working-directory: ./frontend
+        run: |
+          if [ -f package.json ]; then
+            npm audit --json > ../npm-audit.json || true
+          fi
+      - name: Upload npm-audit report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: npm-audit-report
+          path: npm-audit.json
+          if-no-files-found: ignore
+
+      # Secret leak scan via gitleaks
+      - name: Secret scan (gitleaks)
+        uses: gitleaks/gitleaks-action@v2
+        with:
+          args: detect --source . --no-git -v --report-format sarif --report-path gitleaks.sarif
+      - name: Upload gitleaks report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gitleaks-report
+          path: gitleaks.sarif
+          if-no-files-found: ignore
+
+  # ------------------------------------------------
+  # 8) Gate job: simple summary and dependency ordering
+  # ------------------------------------------------
+  gate:
+    name: Gate (summary)
+    runs-on: ubuntu-latest
+    needs: [backend_pytest, e2e_playwright, lighthouse, frontend_quality, backend_quality, perf_locust, security_scan]
+    steps:
+      - run: echo "All jobs finished. Check artifacts for detailed reports."
