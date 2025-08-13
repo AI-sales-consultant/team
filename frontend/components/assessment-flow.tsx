@@ -527,8 +527,8 @@ export function AssessmentFlow() {
         onStepClick={(step) => dispatch({ type: "SET_STEP", payload: step })}
       />
 
-      <div className="flex-1 bg-white relative">
-        <div className="max-w-4xl mx-auto p-8">
+      <div className="zoom-safe-content bg-white relative">
+        <div className="max-w-4xl mx-auto p-8 min-w-0 flex-shrink-0">
           {/* Enhanced Progress Indicator */}
           <div className="mb-8">
             <div className="flex items-center justify-between mb-4">
@@ -606,51 +606,21 @@ export function AssessmentFlow() {
           </div>
         </div>
 
-        {/* Floating Progress Column - Always visible in top-right corner */}
-        <div className="fixed top-8 right-8 z-50">
-          <div className="bg-white rounded-lg shadow-xl border border-gray-200 p-4 w-64">
-            <div className="text-center mb-4">
+        {/* Floating Progress Column - Always visible in bottom-left corner */}
+        <div className="fixed bottom-8 left-8 z-50">
+          <div className="bg-white rounded-lg shadow-xl border border-gray-200 p-4 w-48">
+            <div className="text-center mb-3">
               <h4 className="text-sm font-semibold text-gray-900 mb-2">Assessment Progress</h4>
-              <div className="text-2xl font-bold text-blue-600">
-                {progressPercent}%
-              </div>
-            </div>
-            <div className="space-y-2">
-              {assessmentSteps.map((step, index) => (
-                <div key={index} className="flex items-center space-x-2">
-                  <div className={`w-3 h-3 rounded-full ${
-                    allSections[index] && allSections[index].questions.every(qid => {
-                      const answer = state.answers[qid]
-                      if (!answer) return false
-                      if (answer.selectedOption) return answer.selectedOption.trim() !== ""
-                      if (answer.additionalText) return answer.additionalText.trim() !== ""
-                      return false
-                    })
-                      ? 'bg-green-500' 
-                      : index === state.currentStep 
-                      ? 'bg-blue-500 animate-pulse' 
-                      : 'bg-gray-300'
-                  }`}></div>
-                  <span className={`text-xs ${
-                    allSections[index] && allSections[index].questions.every(qid => {
-                      const answer = state.answers[qid]
-                      if (!answer) return false
-                      if (answer.selectedOption) return answer.selectedOption.trim() !== ""
-                      if (answer.additionalText) return answer.additionalText.trim() !== ""
-                      return false
-                    })
-                      ? 'text-green-600 font-medium' 
-                      : index === state.currentStep 
-                      ? 'text-blue-600 font-semibold' 
-                      : 'text-gray-400'
-                  }`}>
-                    {step.title}
-                  </span>
+              <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
+                <div 
+                  className="bg-gradient-to-r from-blue-500 to-blue-600 h-2 rounded-full transition-all duration-700 ease-out transform origin-left"
+                  style={{ 
+                    width: `${progressPercent}%`
+                  }}
+                >
                 </div>
-              ))}
-            </div>
-            <div className="mt-4 pt-4 border-t border-gray-200">
-              <div className="text-xs text-gray-500 text-center">
+              </div>
+              <div className="text-xs text-gray-500">
                 {completedQuestions} / {totalQuestions} questions completed
               </div>
             </div>

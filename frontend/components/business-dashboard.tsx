@@ -438,13 +438,13 @@ export function BusinessDashboard() {
               </CardHeader>
               <CardContent>
                 <Tabs defaultValue="go-to-market" className="w-full">
-                  <TabsList className="grid w-full grid-cols-6">
-                    <TabsTrigger value="go-to-market" className="text-xs">Go To Market</TabsTrigger>
-                    <TabsTrigger value="performance" className="text-xs">Performance Metrics</TabsTrigger>
-                    <TabsTrigger value="commercial" className="text-xs">Commercial Essentials</TabsTrigger>
-                    <TabsTrigger value="processes" className="text-xs">Optimal Processes</TabsTrigger>
-                    <TabsTrigger value="people" className="text-xs">People, Structure & Culture</TabsTrigger>
-                    <TabsTrigger value="systems" className="text-xs">Systems & Tools</TabsTrigger>
+                  <TabsList className="zoom-safe-tabs h-auto min-h-[40px]">
+                    <TabsTrigger value="go-to-market" className="zoom-safe-tab text-xs">Go To Market</TabsTrigger>
+                    <TabsTrigger value="performance" className="zoom-safe-tab text-xs">Performance Metrics</TabsTrigger>
+                    <TabsTrigger value="commercial" className="zoom-safe-tab text-xs">Commercial Essentials</TabsTrigger>
+                    <TabsTrigger value="processes" className="zoom-safe-tab text-xs">Optimal Processes</TabsTrigger>
+                    <TabsTrigger value="people" className="zoom-safe-tab text-xs">People, Structure & Culture</TabsTrigger>
+                    <TabsTrigger value="systems" className="zoom-safe-tab text-xs">Systems & Tools</TabsTrigger>
                   </TabsList>
                   {[
                     { key: "go-to-market", label: "Go To Market" },
