@@ -204,7 +204,7 @@ export function BaseCampQuestions({ answers, onAnswer, scrollToNextQuestion }: B
                         value={currentAnswer.additionalText || ""}
                         onChange={(e) => handleTextChange(question.id, e.target.value)}
                         placeholder="Please provide your answer"
-                        className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-400 min-h-[80px] focus:border-blue-500 focus:ring-blue-500 transition-all duration-200"
+                        className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-600 min-h-[80px] focus:border-blue-500 focus:ring-blue-500 transition-all duration-200"
                       />
                     </div>
                   ) : (
@@ -240,7 +240,7 @@ export function BaseCampQuestions({ answers, onAnswer, scrollToNextQuestion }: B
                         value={currentAnswer.additionalText || ""}
                         onChange={(e) => handleTextChange(question.id, e.target.value)}
                         placeholder="Please provide additional information"
-                        className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-400 min-h-[80px] focus:border-blue-500 focus:ring-blue-500 transition-all duration-200"
+                        className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-600 min-h-[80px] focus:border-blue-500 focus:ring-blue-500 transition-all duration-200"
                       />
                     </div>
                   )}

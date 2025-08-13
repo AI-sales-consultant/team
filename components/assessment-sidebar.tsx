@@ -35,7 +35,7 @@ export function AssessmentSidebar({ steps, currentStep, onStepClick }: Assessmen
                 ? "bg-slate-700 text-white"
                 : index < currentStep
                   ? "text-slate-300 hover:bg-slate-700"
-                  : "text-slate-500",
+                  : "text-slate-300",
             )}
           >
             <div
