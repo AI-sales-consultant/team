@@ -17,56 +17,114 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        id: node
+      # --- Node + Cache：有锁文件才启用缓存 ---
+      - name: Setup Node.js (pnpm cache)
+        if: ${{ hashFiles('frontend/pnpm-lock.yaml') != '' }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      - name: Setup Node.js (npm cache)
+        if: ${{ hashFiles('frontend/pnpm-lock.yaml') == '' && hashFiles('frontend/package-lock.json') != '' }}
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
+          cache-dependency-path: frontend/package-lock.json
 
+      - name: Setup Node.js (yarn cache)
+        if: ${{ hashFiles('frontend/pnpm-lock.yaml') == '' && hashFiles('frontend/package-lock.json') == '' && hashFiles('frontend/yarn.lock') != '' }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: yarn
+          cache-dependency-path: frontend/yarn.lock
+
+      - name: Setup Node.js (no cache)
+        if: ${{ hashFiles('frontend/pnpm-lock.yaml') == '' && hashFiles('frontend/package-lock.json') == '' && hashFiles('frontend/yarn.lock') == '' }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # --- 包管理器选择：若为 pnpm，安装 pnpm；yarn 不需要这步 ---
       - name: Setup pnpm
         if: ${{ hashFiles('frontend/pnpm-lock.yaml') != '' }}
         uses: pnpm/action-setup@v4
         with:
           version: 9
 
+      # --- 安装依赖（根据锁文件选择命令） ---
       - name: Install frontend deps (pnpm)
         if: ${{ hashFiles('frontend/pnpm-lock.yaml') != '' }}
         working-directory: ./frontend
         run: pnpm install --frozen-lockfile
 
       - name: Install frontend deps (npm)
-        if: ${{ hashFiles('frontend/pnpm-lock.yaml') == '' }}
+        if: ${{ hashFiles('frontend/pnpm-lock.yaml') == '' && hashFiles('frontend/package-lock.json') != '' }}
         working-directory: ./frontend
         run: npm ci
 
+      - name: Install frontend deps (yarn)
+        if: ${{ hashFiles('frontend/pnpm-lock.yaml') == '' && hashFiles('frontend/package-lock.json') == '' && hashFiles('frontend/yarn.lock') != '' }}
+        working-directory: ./frontend
+        run: yarn install --frozen-lockfile
+
+      # --- 构建（按锁文件选择脚本） ---
       - name: Build frontend
         working-directory: ./frontend
         run: |
-          if [ -f pnpm-lock.yaml ] ; then pnpm run build ; else npm run build ; fi
+          if [ -f pnpm-lock.yaml ]; then pnpm run build;
+          elif [ -f yarn.lock ]; then yarn build;
+          else npm run build; fi
 
-      - name: Start frontend server (bg)
+      # --- 启动 + 稳健就绪探测（先 /assessment，失败降级 /，打印日志） ---
+      - name: Start frontend server (bg) with robust readiness
+        env:
+          READINESS_PATH: "/"
         run: |
-          nohup bash -c "cd frontend && ( [ -f pnpm-lock.yaml ] && pnpm start || npm run start )" >/dev/null 2>&1 &
-          for i in {1..60}; do
-            if curl -fsS http://localhost:3000/assessment >/dev/null; then
-              echo "Frontend is up."
-              break
-            fi
-            echo "Waiting for frontend to be ready..."
-            sleep 2
+          set -euo pipefail
+          LOG=frontend_server.log
+          # 启动服务
+          if [ -f frontend/pnpm-lock.yaml ]; then
+            nohup bash -c "cd frontend && pnpm start" >"$LOG" 2>&1 &
+          elif [ -f frontend/yarn.lock ]; then
+            nohup bash -c "cd frontend && yarn start" >"$LOG" 2>&1 &
+          else
+            nohup bash -c "cd frontend && npm run start" >"$LOG" 2>&1 &
+          fi
+
+          for path in /assessment ${READINESS_PATH}; do
+            echo "Probing $path ..."
+            for i in {1..120}; do
+              code="$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:3000${path}" || echo 000)"
+              if [ "$code" -ge 200 ] && [ "$code" -lt 400 ]; then
+                echo "Frontend is up on $path (HTTP $code)."
+                exit 0
+              fi
+              echo "[$i] Waiting... HTTP $code"
+              sleep 2
+            done
           done
 
-      - name: Install Playwright + browsers + a11y deps
+          echo "❌ Timeout. Last 200 lines of server log:"
+          tail -n 200 "$LOG" || true
+          exit 1
+
+      # --- Playwright 安装浏览器 + a11y 依赖 ---
+      - name: Install Playwright + a11y deps
         run: |
           ( [ -f test/package.json ] && ( npm -C test ci || npm -C test install ) ) || npm -C test install --no-save @axe-core/playwright
           npx playwright install --with-deps
 
+      # --- 运行 E2E ---
       - name: Run Playwright tests (trace/screenshot/video, retries=1)
         env:
           CI: true
         run: npx playwright test -c test/playwright.config.ts
 
+      # --- 上传报告与 trace ---
       - name: Upload Playwright HTML report
         if: always()
         uses: actions/upload-artifact@v4
@@ -121,38 +179,86 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      # --- Node + Cache：有锁文件才启用缓存 ---
+      - name: Setup Node.js (pnpm cache)
+        if: ${{ hashFiles('frontend/pnpm-lock.yaml') != '' }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      - name: Setup Node.js (npm cache)
+        if: ${{ hashFiles('frontend/pnpm-lock.yaml') == '' && hashFiles('frontend/package-lock.json') != '' }}
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Setup Node.js (yarn cache)
+        if: ${{ hashFiles('frontend/pnpm-lock.yaml') == '' && hashFiles('frontend/package-lock.json') == '' && hashFiles('frontend/yarn.lock') != '' }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: yarn
+          cache-dependency-path: frontend/yarn.lock
+
+      - name: Setup Node.js (no cache)
+        if: ${{ hashFiles('frontend/pnpm-lock.yaml') == '' && hashFiles('frontend/package-lock.json') == '' && hashFiles('frontend/yarn.lock') == '' }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Setup pnpm
+        if: ${{ hashFiles('frontend/pnpm-lock.yaml') != '' }}
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
 
       - name: Install frontend deps
         working-directory: ./frontend
         run: |
-          if [ -f pnpm-lock.yaml ]; then
-            corepack enable pnpm
-            pnpm install --frozen-lockfile
-          else
-            npm ci
-          fi
+          if [ -f pnpm-lock.yaml ]; then pnpm install --frozen-lockfile;
+          elif [ -f yarn.lock ]; then yarn install --frozen-lockfile;
+          else npm ci; fi
 
       - name: Build frontend
         working-directory: ./frontend
         run: |
-          if [ -f pnpm-lock.yaml ] ; then pnpm run build ; else npm run build ; fi
+          if [ -f pnpm-lock.yaml ] ; then pnpm run build;
+          elif [ -f yarn.lock ] ; then yarn build;
+          else npm run build; fi
 
-      - name: Start frontend server (bg)
+      - name: Start frontend server (bg) with robust readiness
+        env:
+          READINESS_PATH: "/"
         run: |
-          nohup bash -c "cd frontend && ( [ -f pnpm-lock.yaml ] && pnpm start || npm run start )" >/dev/null 2>&1 &
-          for i in {1..60}; do
-            if curl -fsS http://localhost:3000/ >/dev/null; then
-              echo "Frontend is up."
-              break
-            fi
-            echo "Waiting for frontend to be ready..."
-            sleep 2
+          set -euo pipefail
+          LOG=frontend_server.log
+          if [ -f frontend/pnpm-lock.yaml ]; then
+            nohup bash -c "cd frontend && pnpm start" >"$LOG" 2>&1 &
+          elif [ -f frontend/yarn.lock ]; then
+            nohup bash -c "cd frontend && yarn start" >"$LOG" 2>&1 &
+          else
+            nohup bash -c "cd frontend && npm run start" >"$LOG" 2>&1 &
+          fi
+
+          for path in ${READINESS_PATH}; do
+            for i in {1..120}; do
+              code="$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:3000${path}" || echo 000)"
+              if [ "$code" -ge 200 ] && [ "$code" -lt 400 ]; then
+                echo "Frontend is up on $path (HTTP $code)."
+                exit 0
+              fi
+              echo "[$i] Waiting... HTTP $code"
+              sleep 2
+            done
           done
+
+          echo "❌ Timeout. Last 200 lines of server log:"
+          tail -n 200 "$LOG" || true
+          exit 1
 
       - name: Run Lighthouse CI (using test/lighthouserc.json)
         run: |
