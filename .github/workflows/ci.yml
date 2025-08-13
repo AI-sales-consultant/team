@@ -103,17 +103,25 @@ jobs:
           tail -n 200 "$LOG" || true
           exit 1
 
-      # Playwright browsers + a11y helper
-      - name: Install Playwright + a11y deps
+      # ▶ NEW: Install Playwright runner + a11y deps into test/ and install browsers from there
+      - name: Install Playwright runner + a11y (in test/)
         run: |
-          ( [ -f test/package.json ] && ( npm -C test ci || npm -C test install ) ) || npm -C test install --no-save @axe-core/playwright
-          npx playwright install --with-deps
+          set -e
+          mkdir -p test
+          if [ -f test/package.json ]; then
+            npm -C test ci || npm -C test install
+          else
+            npm -C test init -y
+          fi
+          npm -C test ls @playwright/test >/dev/null 2>&1 || npm -C test install --no-save @playwright/test@^1.46
+          npm -C test ls @axe-core/playwright >/dev/null 2>&1 || npm -C test install --no-save @axe-core/playwright
+          npx --prefix test playwright install --with-deps
 
-      # Run E2E (trace/screenshot/video, retries=1)
+      # ▶ UPDATED: Run tests using the test/ node_modules
       - name: Run Playwright tests (trace/screenshot/video, retries=1)
         env:
           CI: true
-        run: npx playwright test -c test/playwright.config.ts
+        run: npx --prefix test playwright test -c test/playwright.config.ts
 
       # Upload reports & traces
       - name: Upload Playwright HTML report
@@ -200,7 +208,7 @@ jobs:
             npm ci
           fi
 
-      # Unique artifact name for this job to avoid 409 conflict
+      # Unique artifact name to avoid 409 conflict with E2E job
       - name: Upload generated lockfile(s)
         if: always()
         uses: actions/upload-artifact@v4
