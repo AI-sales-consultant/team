@@ -42,30 +42,30 @@ def load_score_rules(csv_path):
 
 # 判断是否满足加权规则
 def check_weighting(rules, service_offering):
+    satisfied_count = 0
+    
     for rule in rules:
-        if not rule:
+        if not rule or '-' not in rule:
             continue
-        if '-' not in rule:
-            continue
+            
         r_name, r_opts = rule.split('-')
         r_name = r_name.strip()
         r_opts = [opt.strip().lower() for opt in r_opts.strip().replace(' ', '').split('or')]
-        # 查找serviceOffering中对应的anwserselete
+        
         found = False
         for so in service_offering.values():
             if so.get('question_name') == r_name:
                 user_ans = so.get('anwserselete', '').lower()
                 if user_ans in r_opts:
-                    found = True
-                else:
-                    return False
-        if not found:
-            return False
-    return True
+                    satisfied_count += 1
+                break
+                
+    return satisfied_count
 
 # 1. 保存用户报告
 @app.post("/api/save-user-report", response_model=SaveReportResponse)
 async def save_user_report(data: AssessmentData):
+    print("收到数据", data.dict())
     # 这里可以保存到数据库或文件
     return {
         "status": "success",
@@ -80,6 +80,7 @@ async def save_user_report(data: AssessmentData):
 
 @app.post("/api/llm-advice", response_model=LLMAdviceResponse)
 async def get_llm_advice(request: LLMAdviceRequest):
+    print("收到评估数据：", request.dict()) 
     frontend_data = request.dict()
     assessment_data = frontend_data['assessmentData']
     service_offering = assessment_data['serviceOffering']
@@ -105,12 +106,17 @@ async def get_llm_advice(request: LLMAdviceRequest):
         qid = q['question_id']
         rules = score_rules.get(qid, [])
         original_score = q.get('score', 0)
-        # 规则判断
-        add_weight = check_weighting(rules, service_offering)
-        if add_weight:
-            new_score = original_score * 1.25
+        
+        # 获取满足的规则数量
+        satisfied_count = check_weighting(rules, service_offering)
+        
+        # 根据满足的规则数量计算加权倍数
+        if satisfied_count > 0:
+            weight_multiplier = 1 + (satisfied_count * 0.25)  # 每个规则加权25%
+            new_score = original_score * weight_multiplier
         else:
             new_score = original_score
+        
         q['new_score'] = new_score
         # 新分类
         if new_score < -1:
@@ -186,6 +192,7 @@ async def get_llm_advice(request: LLMAdviceRequest):
                 advice_text += f"- {item['question']}\n  {item['advice']}\n"
         advice_text += "\n"
 
+    print("LLM生成的建议:\n", advice_text)
     return {
         "advice": advice_text,
         "timestamp": datetime.utcnow().isoformat(),

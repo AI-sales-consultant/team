@@ -106,7 +106,7 @@
       opacity: 1;
     }
     50% {
-      opacity: 0.7;
+      opacity: 0.5;
     }
   }
 
@@ -123,7 +123,75 @@
   }
 
   .animate-pulse-slow {
-    animation: pulse-slow 3s ease-in-out infinite;
+    animation: pulse-slow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  /* Extreme zoom handling utilities */
+  .zoom-safe-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    overflow-x: auto;
+    overflow-y: visible;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    min-height: fit-content;
+  }
+
+  .zoom-safe-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .zoom-safe-tab {
+    flex: 1 1 auto;
+    min-width: 0;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    max-width: none;
+  }
+
+  .zoom-safe-sidebar {
+    width: 20rem;
+    max-width: 20rem;
+    min-width: 20rem;
+    flex-shrink: 0;
+    overflow: hidden;
+  }
+
+  .zoom-safe-content {
+    flex: 1;
+    min-width: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+
+  /* Responsive breakpoints for extreme zoom */
+  @media (max-width: 1536px) {
+    .zoom-safe-tab {
+      font-size: 0.75rem;
+      padding: 0.25rem 0.5rem;
+    }
+  }
+
+  /* Ensure multi-line tabs are visible */
+  .zoom-safe-tabs {
+    max-height: none !important;
+    height: auto !important;
+  }
+
+  @media (max-width: 1280px) {
+    .zoom-safe-tab {
+      font-size: 0.7rem;
+      padding: 0.2rem 0.4rem;
+    }
+  }
+
+  @media (max-width: 1024px) {
+    .zoom-safe-tab {
+      font-size: 0.65rem;
+      padding: 0.15rem 0.3rem;
+    }
   }
 
   /* Smooth transitions for question expansion */

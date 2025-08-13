@@ -15,7 +15,7 @@ export function TermsModal({ isOpen, onClose }: TermsModalProps) {
       <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[85vh] flex flex-col overflow-hidden">
         <div className="flex items-center justify-between p-6 border-b border-slate-200">
           <h2 className="text-2xl font-bold text-slate-900">Terms & Conditions</h2>
-          <Button variant="ghost" size="sm" onClick={onClose} className="text-slate-500 hover:text-slate-700">
+          <Button variant="ghost" size="sm" onClick={onClose} className="text-slate-300 hover:text-slate-700">
             <X className="w-5 h-5" />
           </Button>
         </div>
@@ -33,7 +33,7 @@ export function TermsModal({ isOpen, onClose }: TermsModalProps) {
                 <p className="font-semibold text-red-600 mt-4">
                   IF YOU DO NOT AGREE TO THESE TERMS YOU MUST DISCONTINUE USE OF THE SERVICES/WEBSITE
                 </p>
-                <p className="text-slate-500 mt-2">Updated: 10 May 2024</p>
+                <p className="text-slate-300 mt-2">Updated: 10 May 2024</p>
               </div>
 
               <section>

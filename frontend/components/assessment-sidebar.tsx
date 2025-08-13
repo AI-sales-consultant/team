@@ -17,7 +17,7 @@ interface AssessmentSidebarProps {
 
 export function AssessmentSidebar({ steps, currentStep, onStepClick }: AssessmentSidebarProps) {
   return (
-    <div className="w-80 bg-slate-800 p-6">
+    <div className="zoom-safe-sidebar bg-slate-800 p-6">
       {/* Logo */}
       <div className="flex items-center justify-center mb-12">
         <img src="/images/ascent-logo.png" alt="logo" className="h-16 w-auto" />
@@ -35,7 +35,7 @@ export function AssessmentSidebar({ steps, currentStep, onStepClick }: Assessmen
                 ? "bg-slate-700 text-white"
                 : index < currentStep
                   ? "text-slate-300 hover:bg-slate-700"
-                  : "text-slate-500",
+                  : "text-slate-300",
             )}
           >
             <div

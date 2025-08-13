@@ -105,7 +105,7 @@ export default function AdminPage() {
                     </div>
                   </div>
                   <div className="flex flex-col sm:flex-row items-end sm:items-center space-y-2 sm:space-y-0 sm:space-x-2">
-                    <div className="flex items-center space-x-1 text-xs text-slate-500 bg-slate-100 px-2 py-1 rounded">
+                    <div className="flex items-center space-x-1 text-xs text-slate-300 bg-slate-100 px-2 py-1 rounded">
                       <Clock className="w-3 h-3" />
                       <span>{formatDate(request.timestamp)}</span>
                     </div>
