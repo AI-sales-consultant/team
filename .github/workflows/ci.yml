@@ -316,17 +316,15 @@ jobs:
           elif [ -f yarn.lock ]; then yarn install --frozen-lockfile || yarn install;
           else npm ci || npm i; fi
 
-      - name: ESLint (project config or npm run lint is required)
+      - name: ESLint (config required - avoid Next wizard)
         working-directory: ./frontend
         shell: bash
         run: |
           set -e
-          if node -e "try{process.exit(require('./package.json').scripts?.lint?0:1)}catch(e){process.exit(1)}"; then
-            npm run lint
-          elif [ -f .eslintrc ] || [ -f .eslintrc.js ] || [ -f .eslintrc.cjs ] || [ -f .eslintrc.json ] || [ -f .eslintrc.yml ] || [ -f .eslintrc.yaml ]; then
+          if [ -f .eslintrc ] || [ -f .eslintrc.js ] || [ -f .eslintrc.cjs ] || [ -f .eslintrc.json ] || [ -f .eslintrc.yml ] || [ -f .eslintrc.yaml ]; then
             npx -y eslint@8 . --ext .js,.jsx,.ts,.tsx --max-warnings=0
           else
-            echo "No ESLint config or npm run lint found in frontend/. Please add ESLint config (root fix)." >&2
+            echo "Missing ESLint config in frontend/. Please add .eslintrc.cjs (Next.js: extends 'next/core-web-vitals')." >&2
             exit 1
           fi
 
