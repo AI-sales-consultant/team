@@ -17,12 +17,10 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
           cache: "pip"
-
       - name: Install backend dependencies
         run: |
           python -m pip install --upgrade pip
@@ -34,10 +32,8 @@ jobs:
           else
             pip install fastapi "pydantic>=2" starlette httpx pytest pytest-cov
           fi
-
       - name: Run pytest with coverage gate (>=80%)
         run: pytest
-
       - name: Upload coverage.xml artifact
         if: always()
         uses: actions/upload-artifact@v4
@@ -52,32 +48,20 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
-
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
-
       - name: Setup Yarn via Corepack
         if: ${{ hashFiles('frontend/yarn.lock') != '' }}
         run: |
           corepack enable
           corepack prepare yarn@1.22.19 --activate
-
       - name: Setup pnpm
         if: ${{ hashFiles('frontend/pnpm-lock.yaml') != '' }}
         uses: pnpm/action-setup@v4
         with:
           version: 9
-
-      - name: Cache pnpm store
-        if: ${{ hashFiles('frontend/pnpm-lock.yaml') != '' }}
-        uses: actions/cache@v4
-        with:
-          path: ~/.pnpm-store
-          key: ${{ runner.os }}-pnpm-${{ hashFiles('frontend/pnpm-lock.yaml') }}
-          restore-keys: ${{ runner.os }}-pnpm-
-
       - name: Install frontend dependencies
         working-directory: ./frontend
         run: |
@@ -90,32 +74,18 @@ jobs:
             [ -f package-lock.json ] || npm install --package-lock-only
             npm ci || npm i
           fi
-
-      - name: Upload generated lockfile(s)
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: frontend-lockfiles-e2e
-          path: |
-            frontend/pnpm-lock.yaml
-            frontend/yarn.lock
-            frontend/package-lock.json
-          if-no-files-found: ignore
-
       - name: Build frontend
         working-directory: ./frontend
         run: |
           if [ -f pnpm-lock.yaml ]; then pnpm run build;
           elif [ -f yarn.lock ]; then yarn build;
           else npm run build; fi
-
-      - name: Start frontend server (bg) and probe readiness
+      - name: Start frontend server and probe readiness
         env:
           READINESS_PATH: "/"
         run: |
           set -euo pipefail
           LOG=frontend_server.log
-
           if [ -f frontend/pnpm-lock.yaml ]; then
             nohup bash -c "cd frontend && pnpm start" >"$LOG" 2>&1 &
           elif [ -f frontend/yarn.lock ]; then
@@ -123,7 +93,6 @@ jobs:
           else
             nohup bash -c "cd frontend && npm run start" >"$LOG" 2>&1 &
           fi
-
           for path in /assessment ${READINESS_PATH}; do
             echo "Probing $path ..."
             for i in {1..120}; do
@@ -132,33 +101,24 @@ jobs:
                 echo "Frontend is up on $path (HTTP $code)."
                 exit 0
               fi
-              echo "[$i] Waiting... HTTP $code"
               sleep 2
             done
           done
-
-          echo "Timeout. Printing last 200 lines of server log:"
+          echo "Timeout. Last 200 lines of server log:"
           tail -n 200 "$LOG" || true
           exit 1
-
       - name: Install Playwright runner + a11y (in test/)
         run: |
           set -e
           mkdir -p test
-          if [ -f test/package.json ]; then
-            npm -C test ci || npm -C test install
-          else
-            npm -C test init -y
-          fi
+          if [ -f test/package.json ]; then npm -C test ci || npm -C test install; else npm -C test init -y; fi
           npm -C test ls @playwright/test >/dev/null 2>&1 || npm -C test install --no-save @playwright/test@^1.46
           npm -C test ls @axe-core/playwright >/dev/null 2>&1 || npm -C test install --no-save @axe-core/playwright
           npx --prefix test playwright install --with-deps
-
       - name: Run Playwright tests (trace/screenshot/video, retries=1)
         env:
           CI: true
         run: npx --prefix test playwright test -c test/playwright.config.ts
-
       - name: Upload Playwright HTML report
         if: always()
         uses: actions/upload-artifact@v4
@@ -166,7 +126,6 @@ jobs:
           name: playwright-report
           path: test/playwright-report
           if-no-files-found: ignore
-
       - name: Upload Playwright traces
         if: always()
         uses: actions/upload-artifact@v4
@@ -184,27 +143,16 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-
       - name: Setup Yarn via Corepack
         if: ${{ hashFiles('frontend/yarn.lock') != '' }}
         run: |
           corepack enable
           corepack prepare yarn@1.22.19 --activate
-
       - name: Setup pnpm
         if: ${{ hashFiles('frontend/pnpm-lock.yaml') != '' }}
         uses: pnpm/action-setup@v4
         with:
           version: 9
-
-      - name: Cache pnpm store
-        if: ${{ hashFiles('frontend/pnpm-lock.yaml') != '' }}
-        uses: actions/cache@v4
-        with:
-          path: ~/.pnpm-store
-          key: ${{ runner.os }}-pnpm-${{ hashFiles('frontend/pnpm-lock.yaml') }}
-          restore-keys: ${{ runner.os }}-pnpm-
-
       - name: Install frontend dependencies
         working-directory: ./frontend
         run: |
@@ -217,26 +165,13 @@ jobs:
             [ -f package-lock.json ] || npm install --package-lock-only
             npm ci || npm i
           fi
-
-      - name: Upload generated lockfile(s)
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: frontend-lockfiles-lh
-          path: |
-            frontend/pnpm-lock.yaml
-            frontend/yarn.lock
-            frontend/package-lock.json
-          if-no-files-found: ignore
-
       - name: Build frontend
         working-directory: ./frontend
         run: |
           if [ -f pnpm-lock.yaml ]; then pnpm run build;
           elif [ -f yarn.lock ]; then yarn build;
           else npm run build; fi
-
-      - name: Start frontend server (bg) and probe readiness
+      - name: Start frontend server and probe readiness
         env:
           READINESS_PATH: "/"
         run: |
@@ -249,7 +184,6 @@ jobs:
           else
             nohup bash -c "cd frontend && npm run start" >"$LOG" 2>&1 &
           fi
-
           for path in ${READINESS_PATH}; do
             for i in {1..120}; do
               code="$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:3000${path}" || echo 000)"
@@ -257,20 +191,16 @@ jobs:
                 echo "Frontend is up on $path (HTTP $code)."
                 exit 0
               fi
-              echo "[$i] Waiting... HTTP $code"
               sleep 2
             done
           done
-
-          echo "Timeout. Printing last 200 lines of server log:"
+          echo "Timeout. Last 200 lines of server log:"
           tail -n 200 "$LOG" || true
           exit 1
-
       - name: Run Lighthouse CI (using test/lighthouserc.json)
         run: |
           npm -C test install --no-save @lhci/cli@0.13.x
           npx --yes lhci autorun --config=./test/lighthouserc.json
-
       - name: Upload Lighthouse results
         if: always()
         uses: actions/upload-artifact@v4
@@ -288,84 +218,36 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-
       - name: Setup Yarn via Corepack
         if: ${{ hashFiles('frontend/yarn.lock') != '' }}
         run: |
           corepack enable
           corepack prepare yarn@1.22.19 --activate
-
       - name: Setup pnpm
         if: ${{ hashFiles('frontend/pnpm-lock.yaml') != '' }}
         uses: pnpm/action-setup@v4
         with:
           version: 9
-
-      - name: Cache pnpm store
-        if: ${{ hashFiles('frontend/pnpm-lock.yaml') != '' }}
-        uses: actions/cache@v4
-        with:
-          path: ~/.pnpm-store
-          key: ${{ runner.os }}-pnpm-${{ hashFiles('frontend/pnpm-lock.yaml') }}
-          restore-keys: ${{ runner.os }}-pnpm-
-
       - name: Install frontend dependencies
         working-directory: ./frontend
         run: |
           if [ -f pnpm-lock.yaml ]; then pnpm install --frozen-lockfile || pnpm install --no-frozen-lockfile;
           elif [ -f yarn.lock ]; then yarn install --frozen-lockfile || yarn install;
           else npm ci || npm i; fi
-
-      - name: ESLint (project config if available, otherwise CI fallback config)
+      - name: ESLint (project config or CI fallback)
         working-directory: ./frontend
         shell: bash
         run: |
           set -euo pipefail
-          HAS_ESLINT_CFG=0
           if [ -f .eslintrc ] || [ -f .eslintrc.js ] || [ -f .eslintrc.cjs ] || [ -f .eslintrc.json ] || [ -f .eslintrc.yml ] || [ -f .eslintrc.yaml ]; then
-            HAS_ESLINT_CFG=1
-          else
-            node -e "try{process.exit(require('./package.json').scripts?.lint?0:1)}catch(e){process.exit(1)}" && HAS_ESLINT_CFG=2 || true
-          fi
-
-          if [ "$HAS_ESLINT_CFG" -eq 2 ]; then
-            echo "Running project lint script..."
-            npm run lint
-          elif [ "$HAS_ESLINT_CFG" -eq 1 ]; then
             echo "Running ESLint with project config..."
             npx -y eslint@8 . --ext .js,.jsx,.ts,.tsx --max-warnings=0
           else
-            echo "No ESLint config found. Preparing CI-only minimal config..."
+            echo "No ESLint config found. Installing fallback and generating minimal config..."
             npm install --no-save eslint@8 @typescript-eslint/parser@6 @typescript-eslint/eslint-plugin@6 eslint-plugin-jsx-a11y@6
-
-            printf '%s\n' \
-'{' \
-'  "root": true,' \
-'  "ignorePatterns": [' \
-'    "node_modules/", "dist/", "build/", ".next/", "out/", ".vercel/",' \
-'    "coverage/", "test/", "playwright-report/", "*.config.js", "*.config.cjs"' \
-'  ],' \
-'  "env": { "es2022": true, "browser": true, "node": true },' \
-'  "extends": ["eslint:recommended"],' \
-'  "overrides": [' \
-'    {' \
-'      "files": ["**/*.ts", "**/*.tsx"],' \
-'      "parser": "@typescript-eslint/parser",' \
-'      "parserOptions": { "sourceType": "module", "ecmaVersion": 2022 },' \
-'      "plugins": ["@typescript-eslint"],' \
-'      "extends": ["plugin:@typescript-eslint/recommended"]' \
-'    }' \
-'  ]' \
-'}' > .eslintrc.ci.json
-
-            npx eslint -c .eslintrc.ci.json \
-              "src/**/*.{js,jsx,ts,tsx}" \
-              "app/**/*.{js,jsx,ts,tsx}" \
-              "pages/**/*.{js,jsx,ts,tsx}" \
-              "components/**/*.{js,jsx,ts,tsx}" \
-              --no-error-on-unmatched-pattern --max-warnings=0
+            node -e "const fs=require('fs');const cfg={root:true,ignorePatterns:['node_modules/','.next/','out/','dist/','build/','.vercel/','coverage/','test/','playwright-report/','*.config.js','*.config.cjs'],env:{es2022:true,browser:true,node:true},extends:['eslint:recommended'],overrides:[{files:['**/*.ts','**/*.tsx'],parser:'@typescript-eslint/parser',parserOptions:{sourceType:'module',ecmaVersion:2022},plugins:['@typescript-eslint'],extends:['plugin:@typescript-eslint/recommended']}]};fs.writeFileSync('.eslintrc.ci.json',JSON.stringify(cfg));"
+            npx eslint -c .eslintrc.ci.json "src/**/*.{js,jsx,ts,tsx}" "app/**/*.{js,jsx,ts,tsx}" "pages/**/*.{js,jsx,ts,tsx}" "components/**/*.{js,jsx,ts,tsx}" --no-error-on-unmatched-pattern --max-warnings=0
           fi
-
       - name: TypeScript check (tsc --noEmit if tsconfig.json exists)
         working-directory: ./frontend
         run: |
@@ -381,20 +263,16 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
           cache: "pip"
-
       - name: Install quality tools
         run: |
           python -m pip install --upgrade pip
           pip install ruff mypy
-
       - name: Run ruff on fastapi/ and test/
         run: ruff check fastapi test
-
       - name: Run mypy (ignore missing imports)
         run: mypy fastapi --ignore-missing-imports --install-types --non-interactive
 
@@ -404,18 +282,15 @@ jobs:
     timeout-minutes: 12
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
           cache: "pip"
-
       - name: Install app deps and Locust
         run: |
           python -m pip install --upgrade pip
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
           pip install uvicorn locust
-
       - name: Start FastAPI (background)
         run: |
           nohup bash -c "uvicorn fastapi.main:app --host 0.0.0.0 --port 8000" >/tmp/api.log 2>&1 &
@@ -423,22 +298,15 @@ jobs:
             if curl -fsS http://localhost:8000/docs >/dev/null; then echo "API up"; break; fi
             sleep 1
           done
-
       - name: Run Locust headless for 60s
         run: |
-          locust -f locustfile.py --headless -u 20 -r 5 -t 60s \
-            --host http://localhost:8000 \
-            --html locust_report.html --csv smoke
-
+          locust -f locustfile.py --headless -u 20 -r 5 -t 60s --host http://localhost:8000 --html locust_report.html --csv smoke
       - name: Upload Locust report artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: locust-report
-          path: |
-            locust_report.html
-            smoke_stats.csv
-            smoke_distribution.csv
+          path: locust_report.html
           if-no-files-found: ignore
 
   security_scan:
