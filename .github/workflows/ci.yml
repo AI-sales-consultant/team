@@ -11,9 +11,6 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # ------------------------------------------------
-  # 1) Backend: pytest + coverage gate (>=80%)
-  # ------------------------------------------------
   backend_pytest:
     name: Backend Tests (pytest + coverage)
     runs-on: ubuntu-latest
@@ -33,7 +30,6 @@ jobs:
             pip install -r requirements-dev.txt
           elif [ -f requirements.txt ]; then
             pip install -r requirements.txt
-            # Extra test-time deps to avoid import errors when dev file is missing
             pip install httpx pytest pytest-cov
           else
             pip install fastapi "pydantic>=2" starlette httpx pytest pytest-cov
@@ -50,9 +46,6 @@ jobs:
           path: coverage.xml
           if-no-files-found: ignore
 
-  # ------------------------------------------------
-  # 2) Frontend E2E (Playwright + a11y)
-  # ------------------------------------------------
   e2e_playwright:
     name: Frontend E2E (Playwright)
     runs-on: ubuntu-latest
@@ -60,20 +53,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Setup Node.js first (no pnpm cache here to avoid calling pnpm before it's installed)
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
 
-      # If the repo uses Yarn, enable via Corepack
       - name: Setup Yarn via Corepack
         if: ${{ hashFiles('frontend/yarn.lock') != '' }}
         run: |
           corepack enable
           corepack prepare yarn@1.22.19 --activate
 
-      # If the repo uses pnpm, install pnpm and cache its store
       - name: Setup pnpm
         if: ${{ hashFiles('frontend/pnpm-lock.yaml') != '' }}
         uses: pnpm/action-setup@v4
@@ -88,7 +78,6 @@ jobs:
           key: ${{ runner.os }}-pnpm-${{ hashFiles('frontend/pnpm-lock.yaml') }}
           restore-keys: ${{ runner.os }}-pnpm-
 
-      # Install frontend dependencies (strict mode + lockfile self-heal)
       - name: Install frontend dependencies
         working-directory: ./frontend
         run: |
@@ -135,7 +124,6 @@ jobs:
             nohup bash -c "cd frontend && npm run start" >"$LOG" 2>&1 &
           fi
 
-          # Try /assessment first, then fallback to /
           for path in /assessment ${READINESS_PATH}; do
             echo "Probing $path ..."
             for i in {1..120}; do
@@ -149,7 +137,7 @@ jobs:
             done
           done
 
-          echo "❌ Timeout. Last 200 lines of server log:"
+          echo "Timeout. Printing last 200 lines of server log:"
           tail -n 200 "$LOG" || true
           exit 1
 
@@ -187,9 +175,6 @@ jobs:
           path: test-results
           if-no-files-found: ignore
 
-  # ------------------------------------------------
-  # 3) Lighthouse CI (performance, a11y, best practices, SEO)
-  # ------------------------------------------------
   lighthouse:
     name: Lighthouse CI
     runs-on: ubuntu-latest
@@ -277,7 +262,7 @@ jobs:
             done
           done
 
-          echo "❌ Timeout. Last 200 lines of server log:"
+          echo "Timeout. Printing last 200 lines of server log:"
           tail -n 200 "$LOG" || true
           exit 1
 
@@ -294,10 +279,6 @@ jobs:
           path: ./.lighthouseci
           if-no-files-found: ignore
 
-  # ------------------------------------------------
-  # 4) Frontend static quality: ESLint + TypeScript type check (ENFORCED)
-  #     - If no ESLint config/script is present, create a CI-only minimal config (no heredoc)
-  # ------------------------------------------------
   frontend_quality:
     name: Frontend Lint & Type Check
     runs-on: ubuntu-latest
@@ -341,7 +322,6 @@ jobs:
         run: |
           set -euo pipefail
           HAS_ESLINT_CFG=0
-          # Detect project ESLint config or npm script
           if [ -f .eslintrc ] || [ -f .eslintrc.js ] || [ -f .eslintrc.cjs ] || [ -f .eslintrc.json ] || [ -f .eslintrc.yml ] || [ -f .eslintrc.yaml ]; then
             HAS_ESLINT_CFG=1
           else
@@ -357,7 +337,6 @@ jobs:
           else
             echo "No ESLint config found. Preparing CI-only minimal config..."
             npm install --no-save eslint@8 @typescript-eslint/parser@6 @typescript-eslint/eslint-plugin@6 eslint-plugin-jsx-a11y@6
-            # Write a minimal, strict ESLint config via printf (no heredoc to avoid indentation issues)
             printf '%s\n' \
 '{' \
 '  "root": true,' \
@@ -390,9 +369,6 @@ jobs:
             echo "No tsconfig.json, skipping type check."
           fi
 
-  # ------------------------------------------------
-  # 5) Backend static quality: ruff (lint) + mypy (types) (ENFORCED)
-  # ------------------------------------------------
   backend_quality:
     name: Backend Lint (ruff) & Type Check (mypy)
     runs-on: ubuntu-latest
@@ -416,9 +392,6 @@ jobs:
       - name: Run mypy (ignore missing imports)
         run: mypy fastapi --ignore-missing-imports --install-types --non-interactive
 
-  # ------------------------------------------------
-  # 6) Performance smoke test (Locust 60s) (ENFORCED)
-  # ------------------------------------------------
   perf_locust:
     name: Performance Smoke (Locust 60s)
     runs-on: ubuntu-latest
@@ -462,9 +435,6 @@ jobs:
             smoke_distribution.csv
           if-no-files-found: ignore
 
-  # ------------------------------------------------
-  # 7) Security audit: Python, Node, and secret leaks (ENFORCED)
-  # ------------------------------------------------
   security_scan:
     name: Security Audit (pip & npm & secrets)
     runs-on: ubuntu-latest
@@ -472,7 +442,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Python dependency audit
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
@@ -493,7 +462,6 @@ jobs:
           path: pip-audit.json
           if-no-files-found: ignore
 
-      # Node (frontend) dependency audit
       - uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -503,7 +471,8 @@ jobs:
           if [ -f package.json ]; then
             npm audit --json > ../npm-audit.json
           else
-            echo "No package.json found in frontend."; exit 1
+            echo "No package.json found in frontend."
+            exit 1
           fi
       - name: Upload npm-audit report
         if: always()
@@ -513,7 +482,6 @@ jobs:
           path: npm-audit.json
           if-no-files-found: ignore
 
-      # Secret leak scan via gitleaks
       - name: Secret scan (gitleaks)
         uses: gitleaks/gitleaks-action@v2
         with:
@@ -526,12 +494,16 @@ jobs:
           path: gitleaks.sarif
           if-no-files-found: ignore
 
-  # ------------------------------------------------
-  # 8) Gate job: summary and dependency ordering
-  # ------------------------------------------------
   gate:
     name: Gate (summary)
     runs-on: ubuntu-latest
-    needs: [backend_pytest, e2e_playwright, lighthouse, frontend_quality, backend_quality, perf_locust, security_scan]
+    needs:
+      - backend_pytest
+      - e2e_playwright
+      - lighthouse
+      - frontend_quality
+      - backend_quality
+      - perf_locust
+      - security_scan
     steps:
       - run: echo "All jobs finished. Check artifacts for detailed reports."
