@@ -1,0 +1,10 @@
+{
+  "name": "e2e-tests",
+  "private": true,
+  "devDependencies": {
+    "@axe-core/playwright": "^4.9.0"
+  },
+  "scripts": {
+    "test": "playwright test -c test/playwright.config.ts"
+  }
+}
