@@ -234,7 +234,7 @@ jobs:
           if [ -f pnpm-lock.yaml ]; then pnpm install --frozen-lockfile || pnpm install --no-frozen-lockfile;
           elif [ -f yarn.lock ]; then yarn install --frozen-lockfile || yarn install;
           else npm ci || npm i; fi
-      - name: ESLint (project config or CI fallback - isolated with plugin resolution)
+      - name: ESLint (project config or CI fallback - fully isolated)
         working-directory: ./frontend
         shell: bash
         run: |
@@ -243,16 +243,17 @@ jobs:
             echo "Running ESLint with project config..."
             npx -y eslint@8 . --ext .js,.jsx,.ts,.tsx --max-warnings=0
           else
-            echo "No ESLint config found. Using isolated fallback (no install into project)..."
-            # 1) Generate a minimal temporary config
+            echo "No ESLint config found. Using fully isolated fallback (no install into project)..."
+            # 1) Generate minimal temporary config (kept inside repo but not committed)
             node -e "const fs=require('fs');const cfg={root:true,ignorePatterns:['node_modules/','.next/','out/','dist/','build/','.vercel/','coverage/','test/','playwright-report/','*.config.js','*.config.cjs'],env:{es2022:true,browser:true,node:true},extends:['eslint:recommended'],overrides:[{files:['**/*.ts','**/*.tsx'],parser:'@typescript-eslint/parser',parserOptions:{sourceType:'module',ecmaVersion:2022},plugins:['@typescript-eslint'],extends:['plugin:@typescript-eslint/recommended']}]};fs.writeFileSync('.eslintrc.ci.json',JSON.stringify(cfg));"
-            # 2) Compute plugin root in the same isolated env
-            PLUGIN_PKG_PATH=$(npx -y -p @typescript-eslint/eslint-plugin@6 node -e "console.log(require.resolve('@typescript-eslint/eslint-plugin/package.json'))")
-            PLUGIN_ROOT=$(dirname "$PLUGIN_PKG_PATH"); PLUGIN_ROOT=$(dirname "$PLUGIN_ROOT")
-            # 3) Run ESLint with explicit plugin resolution path
-            npx -y -p eslint@8 -p @typescript-eslint/parser@6 -p @typescript-eslint/eslint-plugin@6 -p eslint-plugin-jsx-a11y@6 \
-              eslint -c .eslintrc.ci.json \
-              --resolve-plugins-relative-to "$PLUGIN_ROOT" \
+            # 2) Create an isolated node_modules sandbox and install ESLint + plugins
+            ESLINT_HOME="$(mktemp -d)"
+            echo '{}' > "$ESLINT_HOME/package.json"
+            npm --prefix "$ESLINT_HOME" install eslint@8 @typescript-eslint/parser@6 @typescript-eslint/eslint-plugin@6 eslint-plugin-jsx-a11y@6
+            # 3) Run ESLint from the sandbox and resolve plugins relative to it
+            "$ESLINT_HOME/node_modules/.bin/eslint" \
+              -c .eslintrc.ci.json \
+              --resolve-plugins-relative-to "$ESLINT_HOME/node_modules" \
               "src/**/*.{js,jsx,ts,tsx}" \
               "app/**/*.{js,jsx,ts,tsx}" \
               "pages/**/*.{js,jsx,ts,tsx}" \
