@@ -60,17 +60,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Setup Node.js first (no pnpm cache here to avoid calling pnpm before it's installed)
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
 
+      # If the repo uses Yarn, enable via Corepack
       - name: Setup Yarn via Corepack
         if: ${{ hashFiles('frontend/yarn.lock') != '' }}
         run: |
           corepack enable
           corepack prepare yarn@1.22.19 --activate
 
+      # If the repo uses pnpm, install pnpm and cache its store
       - name: Setup pnpm
         if: ${{ hashFiles('frontend/pnpm-lock.yaml') != '' }}
         uses: pnpm/action-setup@v4
@@ -85,6 +88,7 @@ jobs:
           key: ${{ runner.os }}-pnpm-${{ hashFiles('frontend/pnpm-lock.yaml') }}
           restore-keys: ${{ runner.os }}-pnpm-
 
+      # Install frontend dependencies (strict mode + lockfile self-heal)
       - name: Install frontend dependencies
         working-directory: ./frontend
         run: |
@@ -131,6 +135,7 @@ jobs:
             nohup bash -c "cd frontend && npm run start" >"$LOG" 2>&1 &
           fi
 
+          # Try /assessment first, then fallback to /
           for path in /assessment ${READINESS_PATH}; do
             echo "Probing $path ..."
             for i in {1..120}; do
@@ -291,7 +296,7 @@ jobs:
 
   # ------------------------------------------------
   # 4) Frontend static quality: ESLint + TypeScript type check (ENFORCED)
-  #     - If no ESLint config/script is present, create a CI-only minimal config
+  #     - If no ESLint config/script is present, create a CI-only minimal config (no heredoc)
   # ------------------------------------------------
   frontend_quality:
     name: Frontend Lint & Type Check
@@ -332,10 +337,11 @@ jobs:
 
       - name: ESLint (project config if available, otherwise CI fallback config)
         working-directory: ./frontend
+        shell: bash
         run: |
           set -euo pipefail
           HAS_ESLINT_CFG=0
-          # Detect config or npm script
+          # Detect project ESLint config or npm script
           if [ -f .eslintrc ] || [ -f .eslintrc.js ] || [ -f .eslintrc.cjs ] || [ -f .eslintrc.json ] || [ -f .eslintrc.yml ] || [ -f .eslintrc.yaml ]; then
             HAS_ESLINT_CFG=1
           else
@@ -350,29 +356,28 @@ jobs:
             npx -y eslint@8 . --ext .js,.jsx,.ts,.tsx --max-warnings=0
           else
             echo "No ESLint config found. Preparing CI-only minimal config..."
-            # Install temporary ESLint + TS support (not persisted to package.json)
-            npm install --no-save eslint@8 @typescript-eslint/parser@6 @typescript-eslint/eslint-plugin@6
-            cat > .eslintrc.ci.json <<'EOF'
-            {
-              "root": true,
-              "ignorePatterns": [
-                "node_modules/", "dist/", "build/", ".next/", "out/", ".vercel/",
-                "coverage/", "test/", "playwright-report/", "*.config.js", "*.config.cjs"
-              ],
-              "env": { "es2022": true, "browser": true, "node": true },
-              "extends": ["eslint:recommended"],
-              "overrides": [
-                {
-                  "files": ["**/*.ts", "**/*.tsx"],
-                  "parser": "@typescript-eslint/parser",
-                  "parserOptions": { "sourceType": "module", "ecmaVersion": 2022 },
-                  "plugins": ["@typescript-eslint"],
-                  "extends": ["plugin:@typescript-eslint/recommended"]
-                }
-              ]
-            }
-            EOF
-            # Lint common source locations; don't error if pattern not found
+            npm install --no-save eslint@8 @typescript-eslint/parser@6 @typescript-eslint/eslint-plugin@6 eslint-plugin-jsx-a11y@6
+            # Write a minimal, strict ESLint config via printf (no heredoc to avoid indentation issues)
+            printf '%s\n' \
+'{' \
+'  "root": true,' \
+'  "ignorePatterns": [' \
+'    "node_modules/", "dist/", "build/", ".next/", "out/", ".vercel/",' \
+'    "coverage/", "test/", "playwright-report/", "*.config.js", "*.config.cjs"' \
+'  ],' \
+'  "env": { "es2022": true, "browser": true, "node": true },' \
+'  "extends": ["eslint:recommended"],' \
+'  "overrides": [' \
+'    {' \
+'      "files": ["**/*.ts", "**/*.tsx"],' \
+'      "parser": "@typescript-eslint/parser",' \
+'      "parserOptions": { "sourceType": "module", "ecmaVersion": 2022 },' \
+'      "plugins": ["@typescript-eslint"],' \
+'      "extends": ["plugin:@typescript-eslint/recommended"]' \
+'    }' \
+'  ]' \
+'}' > .eslintrc.ci.json
+
             npx eslint -c .eslintrc.ci.json "src/**/*.{js,jsx,ts,tsx}" "app/**/*.{js,jsx,ts,tsx}" --no-error-on-unmatched-pattern --max-warnings=0
           fi
 
@@ -467,6 +472,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Python dependency audit
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
@@ -487,6 +493,7 @@ jobs:
           path: pip-audit.json
           if-no-files-found: ignore
 
+      # Node (frontend) dependency audit
       - uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -506,6 +513,7 @@ jobs:
           path: npm-audit.json
           if-no-files-found: ignore
 
+      # Secret leak scan via gitleaks
       - name: Secret scan (gitleaks)
         uses: gitleaks/gitleaks-action@v2
         with:
@@ -527,4 +535,3 @@ jobs:
     needs: [backend_pytest, e2e_playwright, lighthouse, frontend_quality, backend_quality, perf_locust, security_scan]
     steps:
       - run: echo "All jobs finished. Check artifacts for detailed reports."
-
