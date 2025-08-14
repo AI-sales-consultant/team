@@ -244,13 +244,15 @@ jobs:
             npx -y eslint@8 . --ext .js,.jsx,.ts,.tsx --max-warnings=0
           else
             echo "No ESLint config found. Using fully isolated fallback (no install into project)..."
-            # 1) Generate minimal temporary config (kept inside repo but not committed)
-            node -e "const fs=require('fs');const cfg={root:true,ignorePatterns:['node_modules/','.next/','out/','dist/','build/','.vercel/','coverage/','test/','playwright-report/','*.config.js','*.config.cjs'],env:{es2022:true,browser:true,node:true},extends:['eslint:recommended'],overrides:[{files:['**/*.ts','**/*.tsx'],parser:'@typescript-eslint/parser',parserOptions:{sourceType:'module',ecmaVersion:2022},plugins:['@typescript-eslint'],extends:['plugin:@typescript-eslint/recommended']}]};fs.writeFileSync('.eslintrc.ci.json',JSON.stringify(cfg));"
-            # 2) Create an isolated node_modules sandbox and install ESLint + plugins
+            # 1) Install ESLint & plugins to a temp sandbox
             ESLINT_HOME="$(mktemp -d)"
             echo '{}' > "$ESLINT_HOME/package.json"
             npm --prefix "$ESLINT_HOME" install eslint@8 @typescript-eslint/parser@6 @typescript-eslint/eslint-plugin@6 eslint-plugin-jsx-a11y@6
-            # 3) Run ESLint from the sandbox and resolve plugins relative to it
+            # 2) Resolve absolute path to the parser from the sandbox
+            PARSER_PATH="$(ESLINT_HOME="$ESLINT_HOME" node -e "console.log(require.resolve('@typescript-eslint/parser', { paths: [process.env.ESLINT_HOME] }))")"
+            # 3) Write a temporary ESLint config that uses the absolute parser path
+            PARSER_PATH="$PARSER_PATH" node -e "const fs=require('fs'); const parser=process.env.PARSER_PATH; const cfg={root:true,ignorePatterns:['node_modules/','.next/','out/','dist/','build/','.vercel/','coverage/','test/','playwright-report/','*.config.js','*.config.cjs'],env:{es2022:true,browser:true,node:true},extends:['eslint:recommended'],overrides:[{files:['**/*.ts','**/*.tsx'],parser,parserOptions:{sourceType:'module',ecmaVersion:2022},plugins:['@typescript-eslint'],extends:['plugin:@typescript-eslint/recommended']}]}; fs.writeFileSync('.eslintrc.ci.json', JSON.stringify(cfg));"
+            # 4) Run ESLint from the sandbox and resolve plugins relative to it
             "$ESLINT_HOME/node_modules/.bin/eslint" \
               -c .eslintrc.ci.json \
               --resolve-plugins-relative-to "$ESLINT_HOME/node_modules" \
@@ -260,7 +262,7 @@ jobs:
               "components/**/*.{js,jsx,ts,tsx}" \
               --no-error-on-unmatched-pattern --max-warnings=0
           fi
-      - name: TypeScript check (tsc --noEmit if tsconfig.json exists)
+      - name: TypeScript check (tsc --NoEmit if tsconfig.json exists)
         working-directory: ./frontend
         run: |
           if [ -f tsconfig.json ]; then
@@ -307,7 +309,7 @@ jobs:
         run: |
           nohup bash -c "uvicorn fastapi.main:app --host 0.0.0.0 --port 8000" >/tmp/api.log 2>&1 &
           for i in {1..60}; do
-            if curl -fsS http://localhost:8000/docs >/dev/null; then echo "API up"; break; fi
+            if curl -fsS http://localhost:8000/docs >/dev/null; then echo 'API up'; break; fi
             sleep 1
           done
       - name: Run Locust headless for 60s
