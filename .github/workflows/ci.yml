@@ -234,7 +234,7 @@ jobs:
           if [ -f pnpm-lock.yaml ]; then pnpm install --frozen-lockfile || pnpm install --no-frozen-lockfile;
           elif [ -f yarn.lock ]; then yarn install --frozen-lockfile || yarn install;
           else npm ci || npm i; fi
-      - name: ESLint (project config or CI fallback)
+      - name: ESLint (project config or CI fallback - isolated via npx -p)
         working-directory: ./frontend
         shell: bash
         run: |
@@ -243,10 +243,15 @@ jobs:
             echo "Running ESLint with project config..."
             npx -y eslint@8 . --ext .js,.jsx,.ts,.tsx --max-warnings=0
           else
-            echo "No ESLint config found. Installing fallback and generating minimal config..."
-            npm install --no-save eslint@8 @typescript-eslint/parser@6 @typescript-eslint/eslint-plugin@6 eslint-plugin-jsx-a11y@6
+            echo "No ESLint config found. Using isolated fallback (no install into project)..."
             node -e "const fs=require('fs');const cfg={root:true,ignorePatterns:['node_modules/','.next/','out/','dist/','build/','.vercel/','coverage/','test/','playwright-report/','*.config.js','*.config.cjs'],env:{es2022:true,browser:true,node:true},extends:['eslint:recommended'],overrides:[{files:['**/*.ts','**/*.tsx'],parser:'@typescript-eslint/parser',parserOptions:{sourceType:'module',ecmaVersion:2022},plugins:['@typescript-eslint'],extends:['plugin:@typescript-eslint/recommended']}]};fs.writeFileSync('.eslintrc.ci.json',JSON.stringify(cfg));"
-            npx eslint -c .eslintrc.ci.json "src/**/*.{js,jsx,ts,tsx}" "app/**/*.{js,jsx,ts,tsx}" "pages/**/*.{js,jsx,ts,tsx}" "components/**/*.{js,jsx,ts,tsx}" --no-error-on-unmatched-pattern --max-warnings=0
+            npx -y -p eslint@8 -p @typescript-eslint/parser@6 -p @typescript-eslint/eslint-plugin@6 -p eslint-plugin-jsx-a11y@6 \
+              eslint -c .eslintrc.ci.json \
+              "src/**/*.{js,jsx,ts,tsx}" \
+              "app/**/*.{js,jsx,ts,tsx}" \
+              "pages/**/*.{js,jsx,ts,tsx}" \
+              "components/**/*.{js,jsx,ts,tsx}" \
+              --no-error-on-unmatched-pattern --max-warnings=0
           fi
       - name: TypeScript check (tsc --noEmit if tsconfig.json exists)
         working-directory: ./frontend
@@ -315,7 +320,6 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
@@ -335,7 +339,6 @@ jobs:
           name: pip-audit-report
           path: pip-audit.json
           if-no-files-found: ignore
-
       - uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -355,7 +358,6 @@ jobs:
           name: npm-audit-report
           path: npm-audit.json
           if-no-files-found: ignore
-
       - name: Secret scan (gitleaks)
         uses: gitleaks/gitleaks-action@v2
         with:
