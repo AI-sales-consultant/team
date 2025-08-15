@@ -135,8 +135,12 @@ async def get_llm_advice(request: LLMAdviceRequest):
             base_text = "未找到数据库答案。"
         # 构建prompt with new business profile fields
         prompt = USER_PROMPT_TEMPLATE.format(
-            original_question=q.get('question', ''),
+            industry=industry,
+            business_challenge=business_challenge,
+            service_type=service_type,
+            revenue_type=revenue_type,
             retrieved_text=base_text,
+            original_question=q.get('question', ''),
             advice_type=new_category
         )
         # 调用LLM处理这一批问题
