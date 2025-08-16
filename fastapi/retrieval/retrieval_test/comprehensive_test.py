@@ -3,12 +3,12 @@ import sys
 import time
 import pytest
 
-# Add the parent directory to the Python path to allow importing the cosmos_retriever module.
-# Pytest handles this better, but it's kept for compatibility if run directly.
+# Ensure a single canonical module identity.
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+if 'fastapi.retrieval.cosmos_retriever' in sys.modules:
+    del sys.modules['fastapi.retrieval.cosmos_retriever']
 
 from cosmos_retriever import get_answer_text
-
 # Test Data: Known existing records selected from the source data.
 VALID_TEST_CASES = [
     ("question_00", "Start_Doing"),
