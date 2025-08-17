@@ -7,6 +7,7 @@ import pathlib
 import requests
 import sys
 import types
+import shutil
 
 # Only needed when we have to spin up the API inside Locust
 try:
@@ -64,7 +65,6 @@ def _install_test_stubs():
         sys.modules["openai"] = openai_stub
 
     # ---- azure.cosmos stub ----
-    # Provide azure and azure.cosmos namespaces, plus CosmosClient with minimal surface
     if "azure" not in sys.modules:
         sys.modules["azure"] = types.ModuleType("azure")
     if "azure.cosmos" not in sys.modules:
@@ -72,7 +72,6 @@ def _install_test_stubs():
 
         class _StubContainer:
             def query_items(self, *args, **kwargs):
-                # Return empty iterable to simulate "not found"
                 return []
 
         class _StubDatabase:
@@ -88,7 +87,6 @@ def _install_test_stubs():
 
         cosmos_stub.CosmosClient = CosmosClient
         sys.modules["azure.cosmos"] = cosmos_stub
-        # Ensure azure.cosmos is reachable as attribute
         setattr(sys.modules["azure"], "cosmos", cosmos_stub)
 
 
@@ -96,11 +94,36 @@ def _ensure_imports_resolve_for_project_layout(root: pathlib.Path) -> None:
     """
     Make absolute imports used by fastapi/main.py resolve correctly.
     We insert <PROJECT_ROOT>/fastapi into sys.path so 'import api' finds fastapi/api.
-    This does NOT shadow third-party 'fastapi' package, because we are NOT adding the project root.
+    This does NOT shadow third-party 'fastapi' package.
     """
     fastapi_layer = str(root / "fastapi")
     if fastapi_layer not in sys.path:
         sys.path.insert(0, fastapi_layer)
+
+
+def _ensure_runtime_assets(root: pathlib.Path) -> None:
+    """
+    Ensure files the app opens via relative paths exist at runtime.
+    Specifically map fastapi/api/score_rule.csv -> ./api/score_rule.csv
+    to satisfy load_score_rules('api/score_rule.csv').
+    """
+    src = root / "fastapi" / "api" / "score_rule.csv"
+    dst_dir = root / "api"
+    dst = dst_dir / "score_rule.csv"
+    if dst.exists():
+        return
+    dst_dir.mkdir(parents=True, exist_ok=True)
+    if src.exists():
+        try:
+            # Prefer symlink (fast, keeps file in sync)
+            dst.symlink_to(src)
+        except Exception:
+            # Fallback to copy (works everywhere)
+            shutil.copy2(src, dst)
+    else:
+        # Last-resort: create an empty file so code that only checks existence won't crash.
+        # If your loader requires real content, keep the copy/symlink path above by ensuring src exists.
+        dst.write_text("", encoding="utf-8")
 
 
 @events.init.add_listener
@@ -125,21 +148,18 @@ def _maybe_boot_local_api(environment, **_):
     if uvicorn is None:
         raise RuntimeError("uvicorn not installed, cannot self-boot API")
 
-    # Ensure absolute imports like "from api.models ..." resolve to fastapi/api/...
     _ensure_imports_resolve_for_project_layout(root)
-
-    # Install stubs so that importing your app won't fail on missing deps
     _install_test_stubs()
+    _ensure_runtime_assets(root)
 
     spec = importlib.util.spec_from_file_location("app_main_under_test", str(main_py))
     mod = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(mod)  # This loads your FastAPI app module
+    spec.loader.exec_module(mod)  # Load your FastAPI app module
 
     port = int(os.getenv("APP_PORT", "8000"))
     config = uvicorn.Config(mod.app, host="127.0.0.1", port=port, log_level="warning")
     server = uvicorn.Server(config)
 
-    # Run uvicorn in a background thread so Locust can continue
     t = threading.Thread(target=server.run, daemon=True)
     t.start()
 
