@@ -5,6 +5,8 @@ import threading
 import importlib.util
 import pathlib
 import requests
+import sys
+import types
 
 # Only needed when we have to spin up the API inside Locust
 try:
@@ -20,6 +22,74 @@ def _is_up(base: str) -> bool:
         return r.ok
     except Exception:
         return False
+
+
+def _install_test_stubs():
+    """
+    Install lightweight stub modules for third-party deps that may not exist in CI:
+    - 'openai' with AzureOpenAI client exposing chat.completions.create(...)
+    - 'azure.cosmos' with CosmosClient that returns empty query results
+    These stubs are just enough for the app to import and run without real I/O.
+    """
+    # ---- openai stub ----
+    if "openai" not in sys.modules:
+        openai_stub = types.ModuleType("openai")
+
+        class _StubMsg:
+            def __init__(self, content: str):
+                self.content = content
+
+        class _StubChoice:
+            def __init__(self, content: str):
+                self.message = _StubMsg(content)
+
+        class _StubResponse:
+            def __init__(self, content: str):
+                self.choices = [_StubChoice(content)]
+
+        class _StubCompletions:
+            def create(self, **kwargs):
+                # Always return a deterministic response
+                return _StubResponse("Stubbed LLM advice")
+
+        class _StubChat:
+            def __init__(self):
+                self.completions = _StubCompletions()
+
+        class AzureOpenAI:
+            def __init__(self, *args, **kwargs):
+                self.chat = _StubChat()
+
+        openai_stub.AzureOpenAI = AzureOpenAI
+        sys.modules["openai"] = openai_stub
+
+    # ---- azure.cosmos stub ----
+    # Provide azure and azure.cosmos namespaces, plus CosmosClient with minimal surface
+    if "azure" not in sys.modules:
+        sys.modules["azure"] = types.ModuleType("azure")
+    if "azure.cosmos" not in sys.modules:
+        cosmos_stub = types.ModuleType("azure.cosmos")
+
+        class _StubContainer:
+            def query_items(self, *args, **kwargs):
+                # Return empty iterable to simulate "not found"
+                return []
+
+        class _StubDatabase:
+            def get_container_client(self, *_args, **_kwargs):
+                return _StubContainer()
+
+        class CosmosClient:
+            def __init__(self, *args, **kwargs):
+                pass
+
+            def get_database_client(self, *_args, **_kwargs):
+                return _StubDatabase()
+
+        cosmos_stub.CosmosClient = CosmosClient
+        sys.modules["azure.cosmos"] = cosmos_stub
+        # Ensure azure.cosmos is reachable as attribute
+        setattr(sys.modules["azure"], "cosmos", cosmos_stub)
 
 
 @events.init.add_listener
@@ -43,6 +113,9 @@ def _maybe_boot_local_api(environment, **_):
 
     if uvicorn is None:
         raise RuntimeError("uvicorn not installed, cannot self-boot API")
+
+    # Install stubs so that importing your app won't fail on missing deps
+    _install_test_stubs()
 
     spec = importlib.util.spec_from_file_location("app_main_under_test", str(main_py))
     mod = importlib.util.module_from_spec(spec)
@@ -82,7 +155,7 @@ class APILoad(HttpUser):
 
     @task
     def advice(self):
-        # Minimal valid payload aligned with backend unit tests
+        # Minimal valid payload aligned with the backend route schema
         payload = {
             "userId": "locust",
             "assessmentData": {
@@ -107,7 +180,7 @@ class APILoad(HttpUser):
                 },
             },
         }
-        # Use catch_response to mark success/failure explicitly for clean metrics
+        # Explicitly mark success/failure for clean metrics
         with self.client.post("/api/llm-advice", json=payload, catch_response=True) as r:
             try:
                 ok = (r.status_code == 200) and ("advice" in r.json())
