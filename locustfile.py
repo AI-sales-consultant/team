@@ -92,6 +92,17 @@ def _install_test_stubs():
         setattr(sys.modules["azure"], "cosmos", cosmos_stub)
 
 
+def _ensure_imports_resolve_for_project_layout(root: pathlib.Path) -> None:
+    """
+    Make absolute imports used by fastapi/main.py resolve correctly.
+    We insert <PROJECT_ROOT>/fastapi into sys.path so 'import api' finds fastapi/api.
+    This does NOT shadow third-party 'fastapi' package, because we are NOT adding the project root.
+    """
+    fastapi_layer = str(root / "fastapi")
+    if fastapi_layer not in sys.path:
+        sys.path.insert(0, fastapi_layer)
+
+
 @events.init.add_listener
 def _maybe_boot_local_api(environment, **_):
     """
@@ -113,6 +124,9 @@ def _maybe_boot_local_api(environment, **_):
 
     if uvicorn is None:
         raise RuntimeError("uvicorn not installed, cannot self-boot API")
+
+    # Ensure absolute imports like "from api.models ..." resolve to fastapi/api/...
+    _ensure_imports_resolve_for_project_layout(root)
 
     # Install stubs so that importing your app won't fail on missing deps
     _install_test_stubs()
