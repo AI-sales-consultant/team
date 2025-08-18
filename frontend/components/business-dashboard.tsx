@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer } from "recharts"
 // import { Target, Users, TrendingUp, DollarSign, User } from "lucide-react"
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback } from "react"
 import { getUserScoreHistory } from "@/lib/score-calculator"
 // import pillarAdvice from "@/lib/pillar-advice.json"
 import { useRouter } from "next/navigation"
@@ -118,7 +118,7 @@ export function BusinessDashboard() {
   const [adviceError, setAdviceError] = useState<string>("")
 
   // 新增：获取LLM建议的函数
-  const fetchLLMAdvice = async (assessmentData: Record<string, unknown>) => {
+  const fetchLLMAdvice = useCallback(async (assessmentData: Record<string, unknown>) => {
     setIsLoadingAdvice(true)
     setAdviceError("")
     
@@ -149,10 +149,10 @@ export function BusinessDashboard() {
     } finally {
       setIsLoadingAdvice(false)
     }
-  }
+  }, [userId])
 
   // 新增：检查是否需要获取建议
-  const checkAndFetchAdvice = async () => {
+  const checkAndFetchAdvice = useCallback(async () => {
     // 检查是否刚完成评估
     const hasCompletedAssessment = localStorage.getItem("assessmentCompleted");
     const assessmentData = localStorage.getItem("assessment_answers");
@@ -171,7 +171,7 @@ export function BusinessDashboard() {
         setLlmAdvice(JSON.parse(hasAdvice));
       }
     }
-  }
+  }, [fetchLLMAdvice])
 
   useEffect(() => {
     // 未登录自动跳转
@@ -193,7 +193,7 @@ export function BusinessDashboard() {
     const scoreHistory = getUserScoreHistory(localUserId)
     if (scoreHistory.length > 0) {
       const latest = scoreHistory[scoreHistory.length - 1]
-      const latestScores = latest.pillarScores || latest.scores
+      const latestScores = latest.pillarScores
       setPillarScores(latestScores)
       setPillarReports(latest.pillarReports || {})
       setCategoryScores(latest.categoryScores || {})
@@ -238,7 +238,7 @@ export function BusinessDashboard() {
 
     // 新增：检查并获取LLM建议
     checkAndFetchAdvice()
-  }, [router])
+  }, [router, checkAndFetchAdvice])
 
   // 自动 POST JSON 到后端
   useEffect(() => {
@@ -273,9 +273,9 @@ export function BusinessDashboard() {
             {/* Welcome Section */}
             <div>
               <h1 className="text-2xl font-bold mb-2">Good evening{userName ? `, ${userName}` : ""}</h1>
-              <p className="text-slate-300 mb-4">
-                Here's the current standing of your business report based on your most recent assessment.
-              </p>
+                              <p className="text-slate-300 mb-4">
+                  Here&apos;s the current standing of your business report based on your most recent assessment.
+                </p>
 
               {/* 新增：LLM建议文本框 */}
               {(llmAdvice || isLoadingAdvice || adviceError) && (
