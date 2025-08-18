@@ -11,6 +11,7 @@ import { getUserScoreHistory } from "@/lib/score-calculator"
 // import pillarAdvice from "@/lib/pillar-advice.json"
 import { useRouter } from "next/navigation"
 import { generateNewJsonFormat } from "./assessment-flow" // 确保导入
+import Image from "next/image"
 
 const DEFAULT_RADAR_DATA = [
   { subject: "Go To Market", A: 50, fullMark: 100 },
@@ -261,7 +262,7 @@ export function BusinessDashboard() {
       <div className="flex items-center justify-between p-6 border-b border-slate-700">
         <div className="flex items-center space-x-4">
           <div className="flex items-center space-x-2">
-            <img src="/images/ascent-logo.png" alt="logo" className="h-10 w-auto" />
+            <Image src="/images/ascent-logo.png" alt="logo" width={120} height={40} className="h-10 w-auto" />
           </div>
         </div>
       </div>
