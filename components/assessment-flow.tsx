@@ -11,8 +11,20 @@ import { ScalingEssentialsQuestions } from "./scaling-essentials-questions"
 import { StreamliningClimbQuestions } from "./streamlining-climb-questions"
 import { AssemblingTeamQuestions } from "./assembling-team-questions"
 import { ToolboxSuccessQuestions } from "./toolbox-success-questions"
-import { calculateAllPillarScores, calculateCategoryScores, saveScoresToFile, getAllPillarReports, CATEGORY_MAPPING } from "@/lib/score-calculator"
+import { calculateAllPillarScores, calculateCategoryScores, saveScoresToFile, CATEGORY_MAPPING } from "@/lib/score-calculator"
 import { useState, useEffect } from "react"
+
+// 定义答案类型接口
+interface AnswerData {
+  text?: string
+  additionalText?: string
+  selectedOption?: string
+}
+
+// 定义结果类型接口
+interface AssessmentResult {
+  [key: string]: Record<string, unknown>
+}
 
 const assessmentSteps = [
   { id: "service-offering", title: "Service Offering", completed: false },
@@ -24,8 +36,8 @@ const assessmentSteps = [
   { id: "toolbox-success", title: "Toolbox for success", completed: false },
 ]
 
-export function generateNewJsonFormat(answers: Record<string, any>) {
-  const result: any = {
+export function generateNewJsonFormat(answers: Record<string, AnswerData>): AssessmentResult {
+  const result: AssessmentResult = {
     serviceOffering: {},
     "Base camp for success (go to market GTM)": {},
     "Tracking the climb (Performance Metrics PM)": {},
@@ -59,7 +71,7 @@ export function generateNewJsonFormat(answers: Record<string, any>) {
 
   // 处理 Service Offering 部分
   let rCounter = 1 // 从R1开始
-  serviceOfferingQuestions.forEach((q, index) => {
+  serviceOfferingQuestions.forEach((q) => {
     const answer = answers[q.id]
     if (!answer) return
 
@@ -167,9 +179,9 @@ export function generateNewJsonFormat(answers: Record<string, any>) {
   ]
 
   // 处理每个部分的问题
-  sectionMappings.forEach((section, sectionIndex) => {
+  sectionMappings.forEach((section) => {
     let questionCounter = 1 // 每个部分从1开始计数
-    section.questions.forEach((q, questionIndex) => {
+    section.questions.forEach((q) => {
       const answer = answers[q.id]
       if (!answer || !answer.selectedOption) return
 
@@ -201,7 +213,7 @@ export function generateNewJsonFormat(answers: Record<string, any>) {
 export function AssessmentFlow() {
   const { state, dispatch } = useAssessment()
   const router = useRouter()
-  const [showFloatingProgress, setShowFloatingProgress] = useState(false)
+  const [, setShowFloatingProgress] = useState(false)
 
   // 监听滚动事件来控制浮动进度条的显示
   useEffect(() => {
@@ -214,7 +226,7 @@ export function AssessmentFlow() {
   }, [])
 
   // 自动滚动到下一个问题的函数
-  const scrollToNextQuestion = (currentQuestionId: string, questions: any[]) => {
+  const scrollToNextQuestion = (currentQuestionId: string, questions: Array<{ id: string }>) => {
     const currentIndex = questions.findIndex((q) => q.id === currentQuestionId)
     if (currentIndex < questions.length - 1) {
       const nextQuestionId = questions[currentIndex + 1].id
@@ -392,7 +404,7 @@ export function AssessmentFlow() {
             try {
               const user = JSON.parse(userStr)
               if (user.email) userId = user.email
-            } catch {}
+            } catch { /* no-op */ }
           }
         }
         // 保存分数到文件
@@ -418,7 +430,18 @@ export function AssessmentFlow() {
           })
           
           console.log("📥 后端响应状态:", response.status)
-          console.log("📥 后端响应头:", Object.fromEntries(response.headers.entries()))
+          // 兼容性处理：使用类型断言来访问headers.entries()
+          try {
+            const headers = response.headers as any
+            if (headers.entries && typeof headers.entries === 'function') {
+              const entries = headers.entries() as Iterable<[string, string]>
+              console.log("📥 后端响应头:", Object.fromEntries(entries))
+            } else {
+              console.log("📥 后端响应头: 无法获取（兼容性问题）")
+            }
+          } catch (error) {
+            console.log("📥 后端响应头: 获取失败")
+          }
           
           if (response.ok) {
             const responseData = await response.json()
@@ -451,7 +474,7 @@ export function AssessmentFlow() {
     }
   }
 
-  const handleAnswer = (questionId: string, answer: any) => {
+  const handleAnswer = (questionId: string, answer: unknown) => {
     dispatch({ type: "SET_ANSWER", payload: { questionId, answer } })
   }
 

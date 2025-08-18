@@ -61,9 +61,9 @@ const assemblingTeamQuestions: Question[] = [
 ]
 
 interface AssemblingTeamQuestionsProps {
-  answers: Record<string, any>
-  onAnswer: (questionId: string, answer: any) => void
-  scrollToNextQuestion: (currentQuestionId: string, questions: any[]) => void
+  answers: Record<string, { selectedOption?: string; additionalText?: string }>
+  onAnswer: (questionId: string, answer: { selectedOption?: string; additionalText?: string }) => void
+  scrollToNextQuestion: (currentQuestionId: string, questions: Array<{ id: string }>) => void
 }
 
 export function AssemblingTeamQuestions({ answers, onAnswer, scrollToNextQuestion }: AssemblingTeamQuestionsProps) {
@@ -110,7 +110,7 @@ export function AssemblingTeamQuestions({ answers, onAnswer, scrollToNextQuestio
     })
   }
 
-  const isQuestionCompleted = (question: Question) => {
+  const _isQuestionCompleted = (question: Question) => {
     const answer = answers[question.id]
     if (!answer) return false
 
