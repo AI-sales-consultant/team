@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 // import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer } from "recharts"
-import { Target, Users, TrendingUp, DollarSign, User } from "lucide-react"
+// import { Target, Users, TrendingUp, DollarSign, User } from "lucide-react"
 import { useEffect, useState } from "react"
 import { getUserScoreHistory } from "@/lib/score-calculator"
 import pillarAdvice from "@/lib/pillar-advice.json"
@@ -61,33 +61,7 @@ const keyMap = {
   "Systems & Tools": "S&T Tips"
 } as const
 
-// 获取建议文本（pillar-advice.json）
-function getAdviceList(pillar: keyof typeof keyMap, userId: string) {
-  const arr = (pillarAdvice as any)[keyMap[pillar]] as any[]
-  if (!arr || arr.length === 0) return ["No advice available.", "No advice available.", "No advice available."]
-  // 用 userId 做 hash，保证同一用户每次一样
-  let idx = 0
-  for (let i = 0; i < userId.length; i++) idx += userId.charCodeAt(i)
-  idx = idx % arr.length
-  const item = arr[idx]
-  return [item["Top Tips"] || "", item["Unnamed: 2"] || "", item["Unnamed: 3"] || ""]
-}
-
-// 根据得分区间和 userId 随机返回一条建议
-function getAdviceByScore(pillar: keyof typeof keyMap, userId: string, score: number) {
-  const arr = (pillarAdvice as any)[keyMap[pillar]] as any[]
-  let col = "Top Tips"
-  if (score > 1.25) col = "Unnamed: 3"
-  else if (score >= -1.25) col = "Unnamed: 2"
-  // 过滤掉空建议
-  const filtered = arr?.filter(item => item[col] && item[col].trim()) || []
-  if (!filtered.length) return "No advice available."
-  // 用 userId 做 hash，保证同一用户每次一样
-  let idx = 0
-  for (let i = 0; i < userId.length; i++) idx += userId.charCodeAt(i)
-  idx = idx % filtered.length
-  return filtered[idx][col]
-}
+// 移除未使用的建议工具函数，避免 unused-vars
 
 function getMetricValue(
   answers: { serviceOffering?: Record<string, { anwser?: string; text?: string }> },
@@ -256,7 +230,7 @@ export function BusinessDashboard() {
       const answersStr = localStorage.getItem("assessment_answers")
       if (answersStr) {
         const answers = JSON.parse(answersStr)
-        const serviceOffering = answers?.serviceOffering || {}
+        // const serviceOffering = answers?.serviceOffering || {}
       }
     }
     // 读取 Service Offering 问卷所有题目
@@ -294,27 +268,7 @@ export function BusinessDashboard() {
     }
   }, [userId, serviceOffering, pillarReports])
 
-  // 导出/同步按钮
-  async function syncMetricsToBackend() {
-    const payload = {
-      growth_target: metrics["revenue-targets"] || "",
-      employees: metrics["business-size-employees"] || "",
-      annual_revenue: metrics["business-size-revenue"] || "",
-      paying_clients: metrics["paying-clients"] || "",
-      service_offering: metrics["service-type"] || ""
-    }
-    try {
-      const res = await fetch("/api/user-metrics", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-      })
-      if (res.ok) alert("同步成功！")
-      else alert("同步失败")
-    } catch {
-      alert("同步失败")
-    }
-  }
+  // 移除未使用的同步函数，避免 unused-vars
 
   return (
     <div className="min-h-screen bg-slate-900 text-white">

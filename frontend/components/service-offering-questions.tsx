@@ -220,15 +220,7 @@ export function ServiceOfferingQuestions({ answers, onAnswer, scrollToNextQuesti
     return false
   }
 
-  const handleNext = (questionId: string) => {
-    const currentIndex = serviceOfferingQuestions.findIndex((q) => q.id === questionId)
-    if (currentIndex < serviceOfferingQuestions.length - 1) {
-      const nextQuestionId = serviceOfferingQuestions[currentIndex + 1].id
-      setExpandedQuestions(new Set([nextQuestionId]))
-      // Auto scroll to next question
-      scrollToNextQuestion(questionId, serviceOfferingQuestions)
-    }
-  }
+  // 移除未使用的函数
 
   return (
     <div className="space-y-6">

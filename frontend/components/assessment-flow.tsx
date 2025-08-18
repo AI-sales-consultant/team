@@ -432,9 +432,9 @@ export function AssessmentFlow() {
           console.log("📥 后端响应状态:", response.status)
           // 兼容性处理：使用类型断言来访问headers.entries()
           try {
-            const headers = response.headers as any
+            const headers = response.headers as unknown as { entries?: () => Iterable<[string, string]> }
             if (headers.entries && typeof headers.entries === 'function') {
-              const entries = headers.entries() as Iterable<[string, string]>
+              const entries = headers.entries()
               console.log("📥 后端响应头:", Object.fromEntries(entries))
             } else {
               console.log("📥 后端响应头: 无法获取（兼容性问题）")
