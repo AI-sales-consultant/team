@@ -8,7 +8,7 @@ import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, Responsi
 // import { Target, Users, TrendingUp, DollarSign, User } from "lucide-react"
 import { useEffect, useState } from "react"
 import { getUserScoreHistory } from "@/lib/score-calculator"
-import pillarAdvice from "@/lib/pillar-advice.json"
+// import pillarAdvice from "@/lib/pillar-advice.json"
 import { useRouter } from "next/navigation"
 import { generateNewJsonFormat } from "./assessment-flow" // 确保导入
 
@@ -51,15 +51,7 @@ function getCircleLabel(score: number) {
   return "Fair"
 }
 
-// 修正 keyMap，key 与 tab.label 完全一致
-const keyMap = {
-  "Go To Market": "GTM Tips",
-  "Performance Metrics": "PM Tips",
-  "Commercial Essentials": "CE Tips",
-  "Optimal Processes": "OP Tips",
-  "People, Structure & Culture": "PSC Tips",
-  "Systems & Tools": "S&T Tips"
-} as const
+// 移除未使用的 keyMap，避免 unused-vars
 
 // 移除未使用的建议工具函数，避免 unused-vars
 
@@ -225,14 +217,7 @@ export function BusinessDashboard() {
         setMetrics(m)
       }
     }
-    // 读取 Service Offering 问卷主观题
-    if (typeof window !== "undefined") {
-      const answersStr = localStorage.getItem("assessment_answers")
-      if (answersStr) {
-        const answers = JSON.parse(answersStr)
-        // const serviceOffering = answers?.serviceOffering || {}
-      }
-    }
+    // 移除未使用的代码块，避免 unused-vars
     // 读取 Service Offering 问卷所有题目
     if (typeof window !== "undefined") {
       const answersStr = localStorage.getItem("assessment_answers")
