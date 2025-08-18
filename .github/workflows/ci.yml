@@ -214,62 +214,80 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-      - name: Setup Yarn via Corepack
-        if: ${{ hashFiles('frontend/yarn.lock') != '' }}
-        run: |
-          corepack enable
-          corepack prepare yarn@1.22.19 --activate
-      - name: Setup pnpm
-        if: ${{ hashFiles('frontend/pnpm-lock.yaml') != '' }}
-        uses: pnpm/action-setup@v4
-        with:
-          version: 9
-      - name: Install frontend dependencies
-        working-directory: ./frontend
-        run: |
-          if [ -f pnpm-lock.yaml ]; then pnpm install --frozen-lockfile || pnpm install --no-frozen-lockfile;
-          elif [ -f yarn.lock ]; then yarn install --frozen-lockfile || yarn install;
-          else npm ci || npm i; fi
-      - name: ESLint (project config or CI fallback - fully isolated)
-        working-directory: ./frontend
-        shell: bash
-        run: |
-          set -euo pipefail
-          if [ -f .eslintrc ] || [ -f .eslintrc.js ] || [ -f .eslintrc.cjs ] || [ -f .eslintrc.json ] || [ -f .eslintrc.yml ] || [ -f .eslintrc.yaml ]; then
-            echo "Running ESLint with project config..."
-            npx -y eslint@8 . --ext .js,.jsx,.ts,.tsx --max-warnings=0
-          else
-            echo "No ESLint config found. Using fully isolated fallback (no install into project)..."
-            # 1) Install ESLint & plugins to a temp sandbox
-            ESLINT_HOME="$(mktemp -d)"
-            echo '{}' > "$ESLINT_HOME/package.json"
-            npm --prefix "$ESLINT_HOME" install eslint@8 @typescript-eslint/parser@6 @typescript-eslint/eslint-plugin@6 eslint-plugin-jsx-a11y@6
-            # 2) Resolve absolute path to the parser from the sandbox
-            PARSER_PATH="$(ESLINT_HOME="$ESLINT_HOME" node -e "console.log(require.resolve('@typescript-eslint/parser', { paths: [process.env.ESLINT_HOME] }))")"
-            # 3) Write a temporary ESLint config that uses the absolute parser path
-            PARSER_PATH="$PARSER_PATH" node -e "const fs=require('fs'); const parser=process.env.PARSER_PATH; const cfg={root:true,ignorePatterns:['node_modules/','.next/','out/','dist/','build/','.vercel/','coverage/','test/','playwright-report/','*.config.js','*.config.cjs'],env:{es2022:true,browser:true,node:true},extends:['eslint:recommended'],overrides:[{files:['**/*.ts','**/*.tsx'],parser,parserOptions:{sourceType:'module',ecmaVersion:2022},plugins:['@typescript-eslint'],extends:['plugin:@typescript-eslint/recommended']}]}; fs.writeFileSync('.eslintrc.ci.json', JSON.stringify(cfg));"
-            # 4) Run ESLint from the sandbox and resolve plugins relative to it
-            "$ESLINT_HOME/node_modules/.bin/eslint" \
-              -c .eslintrc.ci.json \
-              --resolve-plugins-relative-to "$ESLINT_HOME/node_modules" \
-              "src/**/*.{js,jsx,ts,tsx}" \
-              "app/**/*.{js,jsx,ts,tsx}" \
-              "pages/**/*.{js,jsx,ts,tsx}" \
-              "components/**/*.{js,jsx,ts,tsx}" \
-              --no-error-on-unmatched-pattern --max-warnings=0
-          fi
-      - name: TypeScript check (tsc --NoEmit if tsconfig.json exists)
-        working-directory: ./frontend
-        run: |
-          if [ -f tsconfig.json ]; then
-            npx -y typescript@5 tsc --noEmit
-          else
-            echo "No tsconfig.json, skipping type check."
-          fi
+    - uses: actions/checkout@v4
+    - uses: actions/setup-node@v4
+      with:
+        node-version: 20
+    - name: Setup Yarn via Corepack
+      if: ${{ hashFiles('frontend/yarn.lock') != '' }}
+      run: |
+        corepack enable
+        corepack prepare yarn@1.22.19 --activate
+    - name: Setup pnpm
+      if: ${{ hashFiles('frontend/pnpm-lock.yaml') != '' }}
+      uses: pnpm/action-setup@v4
+      with:
+        version: 9
+    - name: Install frontend dependencies
+      working-directory: ./frontend
+      run: |
+        if [ -f pnpm-lock.yaml ]; then pnpm install --frozen-lockfile || pnpm install --no-frozen-lockfile;
+        elif [ -f yarn.lock ]; then yarn install --frozen-lockfile || yarn install;
+        else npm ci || npm i; fi
+    - name: Debug environment
+      working-directory: ./frontend
+      run: |
+        echo "Node version: $(node --version)"
+        echo "npm version: $(npm --version)"
+        echo "Current directory: $(pwd)"
+        echo "Files in directory: $(ls -la)"
+        echo "package.json exists: $(test -f package.json && echo 'yes' || echo 'no')"
+        echo ".eslintrc.json exists: $(test -f .eslintrc.json && echo 'yes' || echo 'no')"
+        echo "tsconfig.json exists: $(test -f tsconfig.json && echo 'yes' || echo 'no')"
+        echo "node_modules exists: $(test -d node_modules && echo 'yes' || echo 'no')"
+        echo "npm bin: $(npm bin)"
+        echo "which npm: $(which npm)"
+        echo "which node: $(which node)"
+        echo "PATH: $PATH"
+        echo "NODE_PATH: $NODE_PATH"
+        echo "npm config list:"
+        npm config list
+    - name: ESLint (project config or CI fallback - fully isolated)
+      working-directory: ./frontend
+      shell: bash
+      run: |
+        set -euo pipefail
+        if [ -f .eslintrc ] || [ -f .eslintrc.js ] || [ -f .eslintrc.cjs ] || [ -f .eslintrc.json ] || [ -f .eslintrc.yml ] || [ -f .eslintrc.yaml ]; then
+          echo "Running ESLint with project config..."
+          npx -y eslint@8 . --ext .js,.jsx,.ts,.tsx --max-warnings=0
+        else
+          echo "No ESLint config found. Using fully isolated fallback (no install into project)..."
+          # 1) Install ESLint & plugins to a temp sandbox
+          ESLINT_HOME="$(mktemp -d)"
+          echo '{}' > "$ESLINT_HOME/package.json"
+          npm --prefix "$ESLINT_HOME" install eslint@8 @typescript-eslint/parser@6 @typescript-eslint/eslint-plugin@6 eslint-plugin-jsx-a11y@6
+          # 2) Resolve absolute path to the parser from the sandbox
+          PARSER_PATH="$(ESLINT_HOME="$ESLINT_HOME" node -e "console.log(require.resolve('@typescript-eslint/parser', { paths: [process.env.ESLINT_HOME] }))")"
+          # 3) Write a temporary ESLint config that uses the absolute parser path
+          PARSER_PATH="$PARSER_PATH" node -e "const fs=require('fs'); const parser=process.env.PARSER_PATH; const cfg={root:true,ignorePatterns:['node_modules/','.next/','out/','dist/','build/','.vercel/','coverage/','test/','playwright-report/','*.config.js','*.config.cjs'],env:{es2022:true,browser:true,node:true},extends:['eslint:recommended'],overrides:[{files:['**/*.ts','**/*.tsx'],parser,parserOptions:{sourceType:'module',ecmaVersion:2022},plugins:['@typescript-eslint'],extends:['plugin:@typescript-eslint/recommended']}]}; fs.writeFileSync('.eslintrc.ci.json', JSON.stringify(cfg));"
+          # 4) Run ESLint from the sandbox and resolve plugins relative to it
+          "$ESLINT_HOME/node_modules/.bin/eslint" \
+            -c .eslintrc.ci.json \
+            --resolve-plugins-relative-to "$ESLINT_HOME/node_modules" \
+            "src/**/*.{js,jsx,ts,tsx}" \
+            "app/**/*.{js,jsx,ts,tsx}" \
+            "pages/**/*.{js,jsx,ts,tsx}" \
+            "components/**/*.{js,jsx,ts,tsx}" \
+            --no-error-on-unmatched-pattern --max-warnings=0
+        fi
+    - name: TypeScript check (tsc --NoEmit if tsconfig.json exists)
+      working-directory: ./frontend
+      run: |
+        if [ -f tsconfig.json ]; then
+          npx -y typescript@5 tsc --noEmit
+        else
+          echo "No tsconfig.json, skipping type check."
+        fi
 
   backend_quality:
     name: Backend Lint (ruff) & Type Check (mypy)
