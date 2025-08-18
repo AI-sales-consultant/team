@@ -489,7 +489,7 @@ export function AssessmentFlow() {
     }
   }
 
-  const handleAnswer = (questionId: string, answer: unknown) => {
+  const handleAnswer = (questionId: string, answer: AnswerData) => {
     dispatch({ type: "SET_ANSWER", payload: { questionId, answer } })
   }
 
