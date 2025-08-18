@@ -159,9 +159,9 @@ const serviceOfferingQuestions: Question[] = [
 ]
 
 interface ServiceOfferingQuestionsProps {
-  answers: Record<string, any>
-  onAnswer: (questionId: string, answer: any) => void
-  scrollToNextQuestion: (currentQuestionId: string, questions: any[]) => void
+  answers: Record<string, { selectedOption?: string; additionalText?: string } | { text?: string }>
+  onAnswer: (questionId: string, answer: { selectedOption?: string; additionalText?: string } | { text?: string }) => void
+  scrollToNextQuestion: (currentQuestionId: string, questions: Array<{ id: string }>) => void
 }
 
 export function ServiceOfferingQuestions({ answers, onAnswer, scrollToNextQuestion }: ServiceOfferingQuestionsProps) {

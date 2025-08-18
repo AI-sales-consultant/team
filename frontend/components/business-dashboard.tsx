@@ -1,18 +1,18 @@
 "use client"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
+// import { Button } from "@/components/ui/button"
+// import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer } from "recharts"
-import { Download, Target, Users, TrendingUp, DollarSign, User } from "lucide-react"
+import { Target, Users, TrendingUp, DollarSign, User } from "lucide-react"
 import { useEffect, useState } from "react"
 import { getUserScoreHistory } from "@/lib/score-calculator"
 import pillarAdvice from "@/lib/pillar-advice.json"
 import { useRouter } from "next/navigation"
 import { generateNewJsonFormat } from "./assessment-flow" // 确保导入
 
-const radarData = [
+const DEFAULT_RADAR_DATA = [
   { subject: "Go To Market", A: 50, fullMark: 100 },
   { subject: "Systems & Tools", A: 80, fullMark: 100 },
   { subject: "Performance Metrics", A: 90, fullMark: 100 },
@@ -21,13 +21,13 @@ const radarData = [
   { subject: "People Structure & Culture", A: 85, fullMark: 100 },
 ]
 
-const keyMetrics = [
-  { icon: Target, label: "Growth Target", value: "100% growth", target: "Target: 90%" },
-  { icon: Users, label: "Employees", value: "5-15 people" },
-  { icon: TrendingUp, label: "Annual Revenue", value: "£1m - £2.5m" },
-  { icon: User, label: "Paying Clients", value: "4 to 8" },
-  { icon: DollarSign, label: "Service Offering", value: "Service" },
-]
+// const keyMetrics = [
+//   { icon: Target, label: "Growth Target", value: "100% growth", target: "Target: 90%" },
+//   { icon: Users, label: "Employees", value: "5-15 people" },
+//   { icon: TrendingUp, label: "Annual Revenue", value: "£1m - £2.5m" },
+//   { icon: User, label: "Paying Clients", value: "4 to 8" },
+//   { icon: DollarSign, label: "Service Offering", value: "Service" },
+// ]
 
 const metricsFieldMap = [
   { label: "Growth Target", key: "revenue-targets" },
@@ -89,7 +89,10 @@ function getAdviceByScore(pillar: keyof typeof keyMap, userId: string, score: nu
   return filtered[idx][col]
 }
 
-function getMetricValue(answers: any, key: string) {
+function getMetricValue(
+  answers: { serviceOffering?: Record<string, { anwser?: string; text?: string }> },
+  key: string
+) {
   // 现在 answers 是标准化JSON格式，需要从 serviceOffering 部分获取数据
   const serviceOffering = answers?.serviceOffering
   if (!serviceOffering) return "-"
@@ -111,7 +114,7 @@ function getMetricValue(answers: any, key: string) {
 }
 
 // 自动 POST 用户问卷 JSON 到后端
-async function postUserReportJson(userId: string, serviceOffering: Record<string, any>, pillarReports: Record<string, string>) {
+async function postUserReportJson(userId: string, serviceOffering: Record<string, { anwser?: string; text?: string }>) {
   // 生成标准化 JSON
   const standardJson = generateNewJsonFormat(serviceOffering)
   try {
@@ -136,14 +139,12 @@ export function BusinessDashboard() {
   const router = useRouter();
   const [userName, setUserName] = useState<string>("")
   const [pillarScores, setPillarScores] = useState<Record<string, number>>({})
-  const [radarData, setRadarData] = useState<any[]>([])
+  const [radarData, setRadarData] = useState<Array<{ subject: string; A: number; fullMark: number }>>(DEFAULT_RADAR_DATA)
   const [pillarReports, setPillarReports] = useState<Record<string, string>>({})
   const [userId, setUserId] = useState<string>("user_default")
   const [categoryScores, setCategoryScores] = useState<Record<string, number>>({})
   const [metrics, setMetrics] = useState<Record<string, string>>({})
-  const [industry, setIndustry] = useState("")
-  const [businessChallenge, setBusinessChallenge] = useState("")
-  const [serviceOffering, setServiceOffering] = useState<Record<string, any>>({})
+  const [serviceOffering, setServiceOffering] = useState<Record<string, { anwser?: string; text?: string }>>({})
   
   // 新增：LLM建议相关状态
   const [llmAdvice, setLlmAdvice] = useState<LLMAdvice | null>(null)
@@ -151,7 +152,7 @@ export function BusinessDashboard() {
   const [adviceError, setAdviceError] = useState<string>("")
 
   // 新增：获取LLM建议的函数
-  const fetchLLMAdvice = async (assessmentData: any) => {
+  const fetchLLMAdvice = async (assessmentData: Record<string, unknown>) => {
     setIsLoadingAdvice(true)
     setAdviceError("")
     
@@ -219,7 +220,7 @@ export function BusinessDashboard() {
         const user = JSON.parse(userStr)
         setUserName(user.firstName || user.email || "")
         if (user.email) localUserId = user.email
-      } catch {}
+      } catch { /* no-op */ }
     }
     setUserId(localUserId)
     // 获取最新的分数数据
@@ -256,8 +257,6 @@ export function BusinessDashboard() {
       if (answersStr) {
         const answers = JSON.parse(answersStr)
         const serviceOffering = answers?.serviceOffering || {}
-        setIndustry(serviceOffering["industry"]?.text || "")
-        setBusinessChallenge(serviceOffering["business-challenge"]?.text || "")
       }
     }
     // 读取 Service Offering 问卷所有题目
@@ -291,7 +290,7 @@ export function BusinessDashboard() {
       pillarReports &&
       Object.keys(pillarReports).length === 6
     ) {
-      postUserReportJson(userId, serviceOffering, pillarReports)
+      postUserReportJson(userId, serviceOffering)
     }
   }, [userId, serviceOffering, pillarReports])
 
