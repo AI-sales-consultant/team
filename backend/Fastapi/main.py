@@ -43,26 +43,27 @@ def load_score_rules(csv_path: str) -> Dict[str, List[str]]:
             rules[qid] = row[1:]
     return rules
 
-def check_weighting(rules: List[str], service_offering: Dict[str, Any]) -> bool:
-    if not rules:
-        return False
+def check_weighting(rules: List[str], service_offering: Dict[str, Any]) -> int:
+    """Check if weighting rules are satisfied, returns the count of satisfied rules"""
+    satisfied_count = 0
+    
     for rule in rules:
         if not rule or '-' not in rule:
             continue
-        r_name, r_opts_str = rule.split('-', 1)
+            
+        r_name, r_opts = rule.split('-')
         r_name = r_name.strip()
-        r_opts = [opt.strip().lower() for opt in r_opts_str.replace(' ', '').split('or')]
+        r_opts = [opt.strip().lower() for opt in r_opts.strip().replace(' ', '').split('or')]
         
-        found_match = False
-        for key, so_value in service_offering.items():
-            if isinstance(so_value, dict) and so_value.get('question_name') == r_name:
-                user_ans = so_value.get('anwserselete', '').lower()
+        found = False
+        for so in service_offering.values():
+            if so.get('question_name') == r_name:
+                user_ans = so.get('anwserselete', '').lower()
                 if user_ans in r_opts:
-                    found_match = True
-                    break
-        if not found_match:
-            return False # If any rule is not satisfied, the condition fails
-    return True
+                    satisfied_count += 1
+                break
+                
+    return satisfied_count
 
 # NEW HELPER: Extracts business profile, adapting to frontend's structure
 def extract_business_profile(service_offering: Dict[str, Any]) -> Dict[str, str]:
@@ -99,10 +100,14 @@ async def generate_advice_for_question(q_data: Dict[str, Any], business_profile:
     if retrieved_text is None:
         retrieved_text = "No standard advice found."
 
-    # Smartly choose the user's answer: prefer detailed text over simple rating
-    user_answer = q_data.get('additionalText', '').strip()
-    if not user_answer:
-        user_answer = q_data.get('anwser', 'N/A')
+    # Smartly choose the user's answer: combine answer with additional text
+    answer = q_data.get('anwser', 'N/A')
+    additional_text = q_data.get('additionalText', '').strip()
+
+    if additional_text:
+        user_answer = f"{answer} - {additional_text}"
+    else:
+        user_answer = answer
 
     prompt = USER_PROMPT_TEMPLATE.format(
         retrieved_text=retrieved_text,
@@ -167,8 +172,16 @@ async def get_llm_advice(request: LLMAdviceRequest):
         rules = score_rules.get(q['question_id'], [])
         original_score = q.get('score', 0)
         
-        add_weight = check_weighting(rules, service_offering)
-        new_score = original_score * 1.25 if add_weight else original_score
+        # Get the count of satisfied rules
+        satisfied_count = check_weighting(rules, service_offering)
+        
+        # Calculate weight multiplier based on the number of satisfied rules
+        if satisfied_count > 0:
+            weight_multiplier = 1 + (satisfied_count * 0.25)  # Each rule adds 25% weight
+            new_score = original_score * weight_multiplier
+        else:
+            new_score = original_score
+        
         q['new_score'] = new_score
 
         if new_score < -1:
