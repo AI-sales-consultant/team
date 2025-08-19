@@ -4,7 +4,7 @@ import os
 import csv
 import openai
 import asyncio
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 from api.models import AssessmentData, SaveReportResponse, LLMAdviceRequest, LLMAdviceResponse
 from dotenv import load_dotenv
 from api.prompts import SYSTEM_PROMPT_TEMPLATE, USER_PROMPT_TEMPLATE
@@ -16,20 +16,31 @@ from typing import Dict, Any, List
 
 load_dotenv()
 
+# CORS configuration from environment variable
+FRONTEND_ORIGIN = os.getenv("FRONTEND_ORIGIN", "*")
+
 app = FastAPI()
+
+@app.get("/healthz")
+def healthz():
+    return {"ok": True}
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=[FRONTEND_ORIGIN] if FRONTEND_ORIGIN != "*" else ["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 # NEW: Use the async client for concurrent API calls
+azure_endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
+if not azure_endpoint:
+    raise ValueError("AZURE_OPENAI_ENDPOINT environment variable is required")
+
 client = openai.AsyncAzureOpenAI(
     api_key=os.getenv("AZURE_OPENAI_API_KEY"),
-    azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
+    azure_endpoint=azure_endpoint,
     api_version="2024-02-15-preview"
 )
 
@@ -53,13 +64,12 @@ def check_weighting(rules: List[str], service_offering: Dict[str, Any]) -> int:
             
         r_name, r_opts = rule.split('-')
         r_name = r_name.strip()
-        r_opts = [opt.strip().lower() for opt in r_opts.strip().replace(' ', '').split('or')]
+        r_opts_list: List[str] = [opt.strip().lower() for opt in r_opts.strip().replace(' ', '').split('or')]
         
-        found = False
         for so in service_offering.values():
             if so.get('question_name') == r_name:
                 user_ans = so.get('anwserselete', '').lower()
-                if user_ans in r_opts:
+                if user_ans in r_opts_list:
                     satisfied_count += 1
                 break
                 
@@ -117,8 +127,12 @@ async def generate_advice_for_question(q_data: Dict[str, Any], business_profile:
     )
 
     try:
+        model_name = os.getenv("AZURE_OPENAI_DEPLOYMENT")
+        if not model_name:
+            raise ValueError("AZURE_OPENAI_DEPLOYMENT environment variable is required")
+            
         response = await client.chat.completions.create(
-            model=os.getenv("AZURE_OPENAI_DEPLOYMENT"),
+            model=model_name,
             messages=[
                 {"role": "system", "content": SYSTEM_PROMPT_TEMPLATE.format(**business_profile)},
                 {"role": "user", "content": prompt}
@@ -202,7 +216,7 @@ async def get_llm_advice(request: LLMAdviceRequest):
         "Scalable": "Phase 3 (Scalable)"
     }
     phase_order = ["Profitable", "Repeatable", "Scalable"]
-    phase_grouped = {phase: defaultdict(list) for phase in phase_order}
+    phase_grouped: Dict[str, Dict[str, List[Dict[str, Any]]]] = {phase: defaultdict(list) for phase in phase_order}
 
     for item in results:
         phase = item.get("catmapping")
@@ -213,7 +227,8 @@ async def get_llm_advice(request: LLMAdviceRequest):
     # 6. Assemble the final advice text
     advice_text = "Based on your assessment results, here are your business recommendations:\n\n"
     for phase in phase_order:
-        if not phase_grouped[phase]: continue
+        if not phase_grouped[phase]:
+             continue
         phase_title = phase_map[phase]
         advice_text += f"=== {phase_title} ===\n"
         for category, items in sorted(phase_grouped[phase].items()):
@@ -226,3 +241,8 @@ async def get_llm_advice(request: LLMAdviceRequest):
         advice=advice_text,
         timestamp=datetime.utcnow().isoformat()
     )
+
+if __name__ == "__main__":
+    import uvicorn
+    port = int(os.getenv("PORT", 8000))
+    uvicorn.run("main:app", host="0.0.0.0", port=port)
