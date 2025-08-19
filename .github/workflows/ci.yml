@@ -86,26 +86,68 @@ jobs:
         run: |
           set -euo pipefail
           LOG=frontend_server.log
+          
+          echo "Starting frontend server..."
           if [ -f frontend/pnpm-lock.yaml ]; then
             nohup bash -c "cd frontend && pnpm start" >"$LOG" 2>&1 &
+            SERVER_PID=$!
           elif [ -f frontend/yarn.lock ]; then
             nohup bash -c "cd frontend && yarn start" >"$LOG" 2>&1 &
+            SERVER_PID=$!
           else
             nohup bash -c "cd frontend && npm run start" >"$LOG" 2>&1 &
+            SERVER_PID=$!
           fi
+          
+          echo "Server started with PID: $SERVER_PID"
+          
+          # Wait a bit for server to fully start
+          echo "Waiting for server to initialize..."
+          sleep 10
+          
+          # Check if server process is still running
+          if ! kill -0 $SERVER_PID 2>/dev/null; then
+            echo "Server process died. Log contents:"
+            cat "$LOG"
+            exit 1
+          fi
+          
+          echo "Probing server endpoints..."
           for path in /assessment ${READINESS_PATH}; do
             echo "Probing $path ..."
             for i in {1..120}; do
-              code="$(curl -s -o /null -w "%{http_code}" "http://localhost:3000${path}" || echo 000)"
+              # Use timeout to prevent hanging
+              code="$(timeout 10 curl -s -o /dev/null -w "%{http_code}" "http://localhost:3000${path}" 2>/dev/null || echo 000)"
               if [ "$code" -ge 200 ] && [ "$code" -lt 400 ]; then
                 echo "Frontend is up on $path (HTTP $code)."
                 exit 0
               fi
+              echo "Attempt $i: HTTP $code for $path"
+              
+              # Check if server is still running
+              if ! kill -0 $SERVER_PID 2>/dev/null; then
+                echo "Server process died during health check. Log contents:"
+                cat "$LOG"
+                exit 1
+              fi
+              
               sleep 2
             done
           done
-          echo "Timeout. Last 200 lines of server log:"
+          
+          echo "Health check timeout. Server process status:"
+          if kill -0 $SERVER_PID 2>/dev/null; then
+            echo "Server is running (PID: $SERVER_PID)"
+          else
+            echo "Server process died"
+          fi
+          
+          echo "Last 200 lines of server log:"
           tail -n 200 "$LOG" || true
+          
+          echo "Current server log (last 50 lines):"
+          tail -n 50 "$LOG" || true
+          
           exit 1
       - name: Install Playwright runner + a11y (in test/)
         run: |
@@ -177,25 +219,68 @@ jobs:
         run: |
           set -euo pipefail
           LOG=frontend_server.log
+          
+          echo "Starting frontend server..."
           if [ -f frontend/pnpm-lock.yaml ]; then
             nohup bash -c "cd frontend && pnpm start" >"$LOG" 2>&1 &
+            SERVER_PID=$!
           elif [ -f frontend/yarn.lock ]; then
             nohup bash -c "cd frontend && yarn start" >"$LOG" 2>&1 &
+            SERVER_PID=$!
           else
             nohup bash -c "cd frontend && npm run start" >"$LOG" 2>&1 &
+            SERVER_PID=$!
           fi
+          
+          echo "Server started with PID: $SERVER_PID"
+          
+          # Wait a bit for server to fully start
+          echo "Waiting for server to initialize..."
+          sleep 10
+          
+          # Check if server process is still running
+          if ! kill -0 $SERVER_PID 2>/dev/null; then
+            echo "Server process died. Log contents:"
+            cat "$LOG"
+            exit 1
+          fi
+          
+          echo "Probing server endpoints..."
           for path in ${READINESS_PATH}; do
+            echo "Probing $path ..."
             for i in {1..120}; do
-              code="$(curl -s -o /null -w "%{http_code}" "http://localhost:3000${path}" || echo 000)"
+              # Use timeout to prevent hanging
+              code="$(timeout 10 curl -s -o /dev/null -w "%{http_code}" "http://localhost:3000${path}" 2>/dev/null || echo 000)"
               if [ "$code" -ge 200 ] && [ "$code" -lt 400 ]; then
                 echo "Frontend is up on $path (HTTP $code)."
                 exit 0
               fi
+              echo "Attempt $i: HTTP $code for $path"
+              
+              # Check if server is still running
+              if ! kill -0 $SERVER_PID 2>/dev/null; then
+                echo "Server process died during health check. Log contents:"
+                cat "$LOG"
+                exit 1
+              fi
+              
               sleep 2
             done
           done
-          echo "Timeout. Last 200 lines of server log:"
+          
+          echo "Health check timeout. Server process status:"
+          if kill -0 $SERVER_PID 2>/dev/null; then
+            echo "Server is running (PID: $SERVER_PID)"
+          else
+            echo "Server process died"
+          fi
+          
+          echo "Last 200 lines of server log:"
           tail -n 200 "$LOG" || true
+          
+          echo "Current server log (last 50 lines):"
+          tail -n 50 "$LOG" || true
+          
           exit 1
       - name: Run Lighthouse CI (using test/lighthouserc.json)
         run: |
