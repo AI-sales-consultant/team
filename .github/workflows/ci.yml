@@ -266,7 +266,9 @@ jobs:
         working-directory: ./frontend
         run: |
           if [ -f tsconfig.json ]; then
-            npx -y typescript@5 tsc --noEmit
+            if [ -f pnpm-lock.yaml ]; then pnpm exec tsc --noEmit -p tsconfig.json;
+          elif [ -f yarn.lock ]; then yarn run -s typecheck || yarn dlx --package typescript@5 tsc --noEmit -p tsconfig.json;
+          else npm run -s typecheck || npx --yes --package typescript@5 -- tsc --noEmit -p tsconfig.json; fi
           else
             echo "No tsconfig.json, skipping type check."
           fi
