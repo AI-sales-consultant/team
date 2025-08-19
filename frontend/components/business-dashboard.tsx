@@ -85,7 +85,7 @@ async function postUserReportJson(userId: string, serviceOffering: Record<string
   // 生成标准化 JSON
   const standardJson = generateNewJsonFormat(serviceOffering)
   try {
-    await fetch("http://localhost:8000/api/save-user-report", {
+    await fetch("/api/save-user-report", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(standardJson)
@@ -124,7 +124,7 @@ export function BusinessDashboard() {
     setAdviceError("")
     
     try {
-      const response = await fetch("http://localhost:8000/api/llm-advice", {
+      const response = await fetch("/api/llm-advice", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
