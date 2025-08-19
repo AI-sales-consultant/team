@@ -42,30 +42,30 @@ def load_score_rules(csv_path):
 
 # 判断是否满足加权规则
 def check_weighting(rules, service_offering):
-    satisfied_count = 0
-    
     for rule in rules:
-        if not rule or '-' not in rule:
+        if not rule:
             continue
-            
+        if '-' not in rule:
+            continue
         r_name, r_opts = rule.split('-')
         r_name = r_name.strip()
         r_opts = [opt.strip().lower() for opt in r_opts.strip().replace(' ', '').split('or')]
-        
+        # 查找serviceOffering中对应的anwserselete
         found = False
         for so in service_offering.values():
             if so.get('question_name') == r_name:
                 user_ans = so.get('anwserselete', '').lower()
                 if user_ans in r_opts:
-                    satisfied_count += 1
-                break
-                
-    return satisfied_count
+                    found = True
+                else:
+                    return False
+        if not found:
+            return False
+    return True
 
 # 1. 保存用户报告
 @app.post("/api/save-user-report", response_model=SaveReportResponse)
 async def save_user_report(data: AssessmentData):
-    print("收到数据", data.dict())
     # 这里可以保存到数据库或文件
     return {
         "status": "success",
@@ -80,7 +80,6 @@ async def save_user_report(data: AssessmentData):
 
 @app.post("/api/llm-advice", response_model=LLMAdviceResponse)
 async def get_llm_advice(request: LLMAdviceRequest):
-    print("收到评估数据：", request.dict()) 
     frontend_data = request.dict()
     assessment_data = frontend_data['assessmentData']
     service_offering = assessment_data['serviceOffering']
@@ -101,22 +100,19 @@ async def get_llm_advice(request: LLMAdviceRequest):
             all_questions.append(q)
     for idx, q in enumerate(all_questions):
         q['question_id'] = f"question_{idx:02d}"
+
+    results = []
     # 2. 处理加权和新分类
     for q in all_questions:
         qid = q['question_id']
         rules = score_rules.get(qid, [])
         original_score = q.get('score', 0)
-        
-        # 获取满足的规则数量
-        satisfied_count = check_weighting(rules, service_offering)
-        
-        # 根据满足的规则数量计算加权倍数
-        if satisfied_count > 0:
-            weight_multiplier = 1 + (satisfied_count * 0.25)  # 每个规则加权25%
-            new_score = original_score * weight_multiplier
+        # 规则判断
+        add_weight = check_weighting(rules, service_offering)
+        if add_weight:
+            new_score = original_score * 1.25
         else:
             new_score = original_score
-        
         q['new_score'] = new_score
         # 新分类
         if new_score < -1:
@@ -126,34 +122,24 @@ async def get_llm_advice(request: LLMAdviceRequest):
         else:
             q['new_category'] = 'Do_More'
     # 3. 检索数据库并增强
-    results = []
-    for q in all_questions:
         question_id = q['question_id']
         new_category = q['new_category']
-        base_text = get_answer_text(question_id, new_category)
-        if base_text is None:
-            base_text = "未找到数据库答案。"
-        # 构建prompt with new business profile fields
-        prompt = USER_PROMPT_TEMPLATE.format(
-            retrieved_text=base_text,
-            original_question=q.get('question', ''),
-            advice_type=new_category
-        )
-        # 调用LLM处理这一批问题
+        retrieved_text = get_answer_text(question_id, new_category)
+        if retrieved_text is None:
+            retrieved_text = "未找到数据库答案。"
+        
+        # 调用LLM
         try:
             response = client.chat.completions.create(
                 model=os.getenv("AZURE_OPENAI_DEPLOYMENT"),
                 messages=[
-                    {"role": "system", "content": SYSTEM_PROMPT_TEMPLATE.format(
-                        industry=industry,
-                        business_challenge=business_challenge,
-                        service_type=service_type,
-                        revenue_type=revenue_type
-                    )},
-                    {"role": "user", "content": prompt}
+                    {"role": "system", "content": SYSTEM_PROMPT_TEMPLATE.format(industry=industry, business_challenge=business_challenge,service_type=service_type, revenue_type=revenue_type)},
+                    {"role": "user", "content": USER_PROMPT_TEMPLATE.format(retrieved_text=retrieved_text,
+                    user_answer=q.get('anwser', ''),
+                    advice_type=new_category)}
                 ],
-                temperature=0.7,
-                max_tokens=1024  # 增加token数量以处理更多内容
+                temperature=0.4,
+                max_tokens=512
             )
             llm_response = response.choices[0].message.content
         except Exception as e:
@@ -192,7 +178,6 @@ async def get_llm_advice(request: LLMAdviceRequest):
                 advice_text += f"- {item['question']}\n  {item['advice']}\n"
         advice_text += "\n"
 
-    print("LLM生成的建议:\n", advice_text)
     return {
         "advice": advice_text,
         "timestamp": datetime.utcnow().isoformat(),

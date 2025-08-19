@@ -23,6 +23,23 @@ VALID_TEST_CASES = [
     ("question_33", "Keep_Doing")
 ]
 
+@pytest.mark.parametrize("qid, category", VALID_TEST_CASES)
+def test_basic_functionality(qid, category):
+    """Tests basic functionality: verifies the retrieval of known data."""
+    answer = get_answer_text(qid, category)
+    
+    assert answer is not None, f"Expected data but got None for ({qid}, {category})"
+    assert isinstance(answer, str), f"Expected str, got {type(answer)} for ({qid}, {category})"
+    assert answer.strip(), f"Returned an empty string for ({qid}, {category})"
+
+
+# Data Integrity Test Cases
+INTEGRITY_TEST_CASES = [
+    ("question_01", "Start_Doing", "specific clients who need your offering"),
+    ("question_00", "Start_Doing", "Identifying your ideal niche"),
+    ("question_33", "Keep_Doing", "effective CRM system"),
+]
+
 # Invalid Test Cases.
 INVALID_TEST_CASES = [
     ("question_99", "Start_Doing", "Non-existent question_id"),
@@ -32,28 +49,11 @@ INVALID_TEST_CASES = [
     ("question_00", "", "Empty category"),
     ("", "", "Both parameters empty")
 ]
-
-# Data Integrity Test Cases
-INTEGRITY_TEST_CASES = [
-    ("question_01", "Start_Doing", "specific clients who need your offering"),
-    ("question_00", "Start_Doing", "Identifying your ideal niche"),
-    ("question_33", "Keep_Doing", "effective CRM system"),
-]
-
 # Boundary Condition Test Cases
 BOUNDARY_TEST_CASES = [
     ("question_00", "Start_Doing" + " " * 100, "Long category name"),
     ("question_" + "0" * 100, "Start_Doing", "Long ID"),
 ]
-
-@pytest.mark.parametrize("qid, category", VALID_TEST_CASES)
-def test_basic_functionality(qid, category):
-    """Tests basic functionality: verifies the retrieval of known data."""
-    answer = get_answer_text(qid, category)
-    
-    assert answer is not None, f"Expected data but got None for ({qid}, {category})"
-    assert isinstance(answer, str), f"Expected str, got {type(answer)} for ({qid}, {category})"
-    assert answer.strip(), f"Returned an empty string for ({qid}, {category})"
 
 @pytest.mark.parametrize("qid, category, description", INVALID_TEST_CASES)
 def test_invalid_cases(qid, category, description):
@@ -86,12 +86,10 @@ def test_performance_baseline():
         start_time = time.time()
         answer = get_answer_text(qid, category)
         end_time = time.time()
-        
         assert answer is not None, f"Performance test failed to retrieve data for ({qid}, {category})"
         
         response_time_ms = (end_time - start_time) * 1000
         response_times.append(response_time_ms)
-        
         assert response_time_ms <= 5000, f"Response time too long: {response_time_ms:.1f}ms for ({qid}, {category})"
 
     if response_times:

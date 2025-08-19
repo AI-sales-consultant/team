@@ -30,49 +30,33 @@ azure-cosmos
 python-dotenv
 
 
-3.2. Environment Variable Configuration
+## 3.2. Environment Variable Configuration
 
 This module loads database credentials from environment variables. Configure the following two variables in your backend application's runtime environment:
 
 COSMOS_ENDPOINT: The URI of your Azure Cosmos DB account.
-
 COSMOS_KEY: The Primary Key of your Azure Cosmos DB account.
 
 Example .env file:
-
-
 COSMOS_ENDPOINT="https://<your-account-name>.documents.azure.com:443/"
 COSMOS_KEY="<your-primary-key>"
 
-
-The module automatically initializes a global database client upon loading to reuse connections and improve performance.
-
-4. API Usage Guide
+4. Integration Guide
 
 4.1. Importing the Function
 
 Import the core function from the module into your backend code:
-
-
 from cosmos_retriever import get_answer_text
-
 
 4.2. Function Signature
 
-
 def get_answer_text(question_id: str, category: str) -> str | None:
-
-
 Parameters:
-
 question_id (str): The business ID for the question, e.g., "question_00". This corresponds to the question_id field in the data source.
-
 category (str): The category of the answer, e.g., "Start_Doing". This corresponds to the category field in the data source.
 
 Return Value (str | None):
-
 Success: If a matching record is found, returns the content of its text field (a string).
-
 Failure or Not Found: If no matching record is found, or if a database error (e.g., connection issue) occurs during the query, returns None.
 
 4.3. Usage Example

@@ -46,36 +46,27 @@ def get_answer_text(question_id: str, category: str) -> Optional[str]:
         "SELECT c.text FROM c "
         "WHERE c.question_id = @question_id AND c.category = @category"
     )
-    
     parameters = [
         {"name": "@question_id", "value": question_id},
         {"name": "@category", "value": category},
     ]
-
-    logging.info(f"Executing query: {query} with params: {parameters}")
-
     try:
         # 2. Execute the query.
-        # enable_cross_partition_query is set to True for robustness, allowing the query
-        # to work even if the query fields don't align with the partition key.
         items = list(container_client.query_items(
             query=query,
             parameters=parameters,
             enable_cross_partition_query=True
         ))
-        
         # 3. Process and validate the query results.
         if not items:
             logging.warning(f"No match found for: question_id='{question_id}', category='{category}'")
             return None
-        
         # This check is a safeguard for data integrity. We expect only one unique answer.
         if len(items) > 1:
             logging.warning(
                 f"Found {len(items)} matches, but expected 1. Returning the first result. "
                 f"Query: question_id='{question_id}', category='{category}'"
             )
-        
         # Return the 'text' field from the first record.
         return items[0].get("text")
 
