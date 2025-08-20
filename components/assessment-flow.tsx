@@ -1,4 +1,5 @@
 "use client"
+/* eslint-disable no-console */
 
 import { useAssessment } from "@/contexts/assessment-context"
 import { AssessmentSidebar } from "./assessment-sidebar"
@@ -410,7 +411,9 @@ export function AssessmentFlow() {
         // 保存分数到文件
         try {
           await saveScoresToFile(userId, pillarScores, categoryScores)
-          console.log("Pillar & Category scores saved:", pillarScores, categoryScores)
+                      if (process.env.NODE_ENV === "development") {
+              console.log("Pillar & Category scores saved:", pillarScores, categoryScores)
+            }
         } catch (error) {
           console.error("Failed to save scores:", error)
         }
@@ -420,8 +423,10 @@ export function AssessmentFlow() {
         
         // 自动POST到FastAPI
         try {
+                  if (process.env.NODE_ENV === "development") {
           console.log("🚀 开始发送数据到后端...")
           console.log("📤 发送的数据:", newJsonData)
+        }
           
           const response = await fetch("http://localhost:8000/api/save-user-report", {
             method: "POST",
@@ -429,24 +434,34 @@ export function AssessmentFlow() {
             body: JSON.stringify(newJsonData)
           })
           
-          console.log("📥 后端响应状态:", response.status)
+                      if (process.env.NODE_ENV === "development") {
+              console.log("📥 后端响应状态:", response.status)
+            }
           // 兼容性处理：使用类型断言来访问headers.entries()
           try {
-            const headers = response.headers as any
+            const headers = response.headers as unknown as { entries?: () => Iterable<[string, string]> }
             if (headers.entries && typeof headers.entries === 'function') {
-              const entries = headers.entries() as Iterable<[string, string]>
-              console.log("📥 后端响应头:", Object.fromEntries(entries))
-            } else {
-              console.log("📥 后端响应头: 无法获取（兼容性问题）")
-            }
-          } catch (error) {
+              const entries = headers.entries()
+              if (process.env.NODE_ENV === "development") {
+                console.log("📥 后端响应头:", Object.fromEntries(entries))
+              }
+                          } else {
+                if (process.env.NODE_ENV === "development") {
+                  console.log("📥 后端响应头: 无法获取（兼容性问题）")
+                }
+              }
+          } catch {
+            if (process.env.NODE_ENV === "development") {
             console.log("📥 后端响应头: 获取失败")
+          }
           }
           
           if (response.ok) {
             const responseData = await response.json()
-            console.log("✅ 数据成功发送到后端")
-            console.log("📥 后端返回数据:", responseData)
+            if (process.env.NODE_ENV === "development") {
+              console.log("✅ 数据成功发送到后端")
+              console.log("📥 后端返回数据:", responseData)
+            }
           } else {
             const errorText = await response.text()
             console.warn("⚠️ 后端响应异常:", response.status)
@@ -474,7 +489,7 @@ export function AssessmentFlow() {
     }
   }
 
-  const handleAnswer = (questionId: string, answer: unknown) => {
+  const handleAnswer = (questionId: string, answer: AnswerData) => {
     dispatch({ type: "SET_ANSWER", payload: { questionId, answer } })
   }
 

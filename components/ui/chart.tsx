@@ -102,6 +102,16 @@ ${colorConfig
 
 const ChartTooltip = RechartsPrimitive.Tooltip
 
+// 定义 payload 的类型
+interface TooltipPayload {
+  dataKey?: string
+  name?: string
+  value?: number
+  payload?: Record<string, unknown>
+  color?: string
+  fill?: string
+}
+
 const ChartTooltipContent = React.forwardRef<
   HTMLDivElement,
   React.ComponentProps<typeof RechartsPrimitive.Tooltip> &
@@ -111,6 +121,9 @@ const ChartTooltipContent = React.forwardRef<
       indicator?: "line" | "dot" | "dashed"
       nameKey?: string
       labelKey?: string
+      active?: boolean
+      payload?: TooltipPayload[]
+      label?: string | number
     }
 >(
   (
@@ -138,7 +151,7 @@ const ChartTooltipContent = React.forwardRef<
         return null
       }
 
-      const [item] = payload
+      const [item] = payload as TooltipPayload[]
       const key = `${labelKey || item.dataKey || item.name || "value"}`
       const itemConfig = getPayloadConfigFromPayload(config, item, key)
       const value =
@@ -149,7 +162,7 @@ const ChartTooltipContent = React.forwardRef<
       if (labelFormatter) {
         return (
           <div className={cn("font-medium", labelClassName)}>
-            {labelFormatter(value, payload)}
+            {labelFormatter(value, payload as TooltipPayload[])}
           </div>
         )
       }
@@ -185,10 +198,10 @@ const ChartTooltipContent = React.forwardRef<
       >
         {!nestLabel ? tooltipLabel : null}
         <div className="grid gap-1.5">
-          {payload.map((item, index) => {
+          {(payload as TooltipPayload[]).map((item: TooltipPayload, index: number) => {
             const key = `${nameKey || item.name || item.dataKey || "value"}`
             const itemConfig = getPayloadConfigFromPayload(config, item, key)
-            const indicatorColor = color || item.payload.fill || item.color
+            const indicatorColor = color || (item.payload as Record<string, unknown>)?.fill || item.color
 
             return (
               <div
@@ -199,7 +212,7 @@ const ChartTooltipContent = React.forwardRef<
                 )}
               >
                 {formatter && item?.value !== undefined && item.name ? (
-                  formatter(item.value, item.name, item, index, item.payload)
+                  formatter(item.value, item.name, item, index, payload as TooltipPayload[])
                 ) : (
                   <>
                     {itemConfig?.icon ? (
@@ -258,12 +271,21 @@ ChartTooltipContent.displayName = "ChartTooltip"
 
 const ChartLegend = RechartsPrimitive.Legend
 
+// 定义 legend payload 的类型
+interface LegendPayload {
+  dataKey?: string
+  name?: string
+  value?: string | number
+  color?: string
+}
+
 const ChartLegendContent = React.forwardRef<
   HTMLDivElement,
   React.ComponentProps<"div"> &
-    Pick<RechartsPrimitive.LegendProps, "payload" | "verticalAlign"> & {
+    Pick<RechartsPrimitive.LegendProps, "verticalAlign"> & {
       hideIcon?: boolean
       nameKey?: string
+      payload?: LegendPayload[]
     }
 >(
   (
@@ -285,7 +307,7 @@ const ChartLegendContent = React.forwardRef<
           className
         )}
       >
-        {payload.map((item) => {
+        {(payload as LegendPayload[]).map((item: LegendPayload) => {
           const key = `${nameKey || item.dataKey || "value"}`
           const itemConfig = getPayloadConfigFromPayload(config, item, key)
 

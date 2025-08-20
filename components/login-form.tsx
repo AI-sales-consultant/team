@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import Image from "next/image"
 
 export function LoginForm() {
   const [isLogin, setIsLogin] = useState(true)
@@ -76,7 +77,7 @@ export function LoginForm() {
       {/* Logo */}
       <div className="absolute top-8 left-8">
         <div className="flex items-center">
-          <img src="/images/ascent-logo-home.png" alt="logo" className="h-16 w-auto" />
+          <Image src="/images/ascent-logo-home.png" alt="logo" width={160} height={64} className="h-16 w-auto" />
         </div>
       </div>
 

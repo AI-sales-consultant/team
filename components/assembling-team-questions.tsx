@@ -110,17 +110,7 @@ export function AssemblingTeamQuestions({ answers, onAnswer, scrollToNextQuestio
     })
   }
 
-  const _isQuestionCompleted = (question: Question) => {
-    const answer = answers[question.id]
-    if (!answer) return false
-
-    if (question.type === "text") {
-      return answer.additionalText && answer.additionalText.trim() !== ""
-    } else if (question.type === "likert-scale") {
-      return answer.selectedOption && answer.selectedOption.trim() !== ""
-    }
-    return false
-  }
+  // 移除未使用的函数
 
   return (
     <div className="space-y-6">

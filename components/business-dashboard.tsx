@@ -5,12 +5,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 // import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer } from "recharts"
-import { Target, Users, TrendingUp, DollarSign, User } from "lucide-react"
-import { useEffect, useState } from "react"
+// import { Target, Users, TrendingUp, DollarSign, User } from "lucide-react"
+import { useEffect, useState, useCallback } from "react"
 import { getUserScoreHistory } from "@/lib/score-calculator"
-import pillarAdvice from "@/lib/pillar-advice.json"
+// import pillarAdvice from "@/lib/pillar-advice.json"
 import { useRouter } from "next/navigation"
 import { generateNewJsonFormat } from "./assessment-flow" // 确保导入
+import Image from "next/image"
 
 const DEFAULT_RADAR_DATA = [
   { subject: "Go To Market", A: 50, fullMark: 100 },
@@ -51,43 +52,9 @@ function getCircleLabel(score: number) {
   return "Fair"
 }
 
-// 修正 keyMap，key 与 tab.label 完全一致
-const keyMap = {
-  "Go To Market": "GTM Tips",
-  "Performance Metrics": "PM Tips",
-  "Commercial Essentials": "CE Tips",
-  "Optimal Processes": "OP Tips",
-  "People, Structure & Culture": "PSC Tips",
-  "Systems & Tools": "S&T Tips"
-} as const
+// 移除未使用的 keyMap，避免 unused-vars
 
-// 获取建议文本（pillar-advice.json）
-function getAdviceList(pillar: keyof typeof keyMap, userId: string) {
-  const arr = (pillarAdvice as any)[keyMap[pillar]] as any[]
-  if (!arr || arr.length === 0) return ["No advice available.", "No advice available.", "No advice available."]
-  // 用 userId 做 hash，保证同一用户每次一样
-  let idx = 0
-  for (let i = 0; i < userId.length; i++) idx += userId.charCodeAt(i)
-  idx = idx % arr.length
-  const item = arr[idx]
-  return [item["Top Tips"] || "", item["Unnamed: 2"] || "", item["Unnamed: 3"] || ""]
-}
-
-// 根据得分区间和 userId 随机返回一条建议
-function getAdviceByScore(pillar: keyof typeof keyMap, userId: string, score: number) {
-  const arr = (pillarAdvice as any)[keyMap[pillar]] as any[]
-  let col = "Top Tips"
-  if (score > 1.25) col = "Unnamed: 3"
-  else if (score >= -1.25) col = "Unnamed: 2"
-  // 过滤掉空建议
-  const filtered = arr?.filter(item => item[col] && item[col].trim()) || []
-  if (!filtered.length) return "No advice available."
-  // 用 userId 做 hash，保证同一用户每次一样
-  let idx = 0
-  for (let i = 0; i < userId.length; i++) idx += userId.charCodeAt(i)
-  idx = idx % filtered.length
-  return filtered[idx][col]
-}
+// 移除未使用的建议工具函数，避免 unused-vars
 
 function getMetricValue(
   answers: { serviceOffering?: Record<string, { anwser?: string; text?: string }> },
@@ -118,7 +85,7 @@ async function postUserReportJson(userId: string, serviceOffering: Record<string
   // 生成标准化 JSON
   const standardJson = generateNewJsonFormat(serviceOffering)
   try {
-    await fetch("http://localhost:8000/api/save-user-report", {
+    await fetch("/api/save-user-report", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(standardJson)
@@ -152,12 +119,12 @@ export function BusinessDashboard() {
   const [adviceError, setAdviceError] = useState<string>("")
 
   // 新增：获取LLM建议的函数
-  const fetchLLMAdvice = async (assessmentData: Record<string, unknown>) => {
+  const fetchLLMAdvice = useCallback(async (assessmentData: Record<string, unknown>) => {
     setIsLoadingAdvice(true)
     setAdviceError("")
     
     try {
-      const response = await fetch("http://localhost:8000/api/llm-advice", {
+      const response = await fetch("/api/llm-advice", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -183,10 +150,10 @@ export function BusinessDashboard() {
     } finally {
       setIsLoadingAdvice(false)
     }
-  }
+  }, [userId])
 
   // 新增：检查是否需要获取建议
-  const checkAndFetchAdvice = async () => {
+  const checkAndFetchAdvice = useCallback(async () => {
     // 检查是否刚完成评估
     const hasCompletedAssessment = localStorage.getItem("assessmentCompleted");
     const assessmentData = localStorage.getItem("assessment_answers");
@@ -205,7 +172,7 @@ export function BusinessDashboard() {
         setLlmAdvice(JSON.parse(hasAdvice));
       }
     }
-  }
+  }, [fetchLLMAdvice])
 
   useEffect(() => {
     // 未登录自动跳转
@@ -227,7 +194,7 @@ export function BusinessDashboard() {
     const scoreHistory = getUserScoreHistory(localUserId)
     if (scoreHistory.length > 0) {
       const latest = scoreHistory[scoreHistory.length - 1]
-      const latestScores = latest.pillarScores || latest.scores
+      const latestScores = latest.pillarScores
       setPillarScores(latestScores)
       setPillarReports(latest.pillarReports || {})
       setCategoryScores(latest.categoryScores || {})
@@ -251,14 +218,7 @@ export function BusinessDashboard() {
         setMetrics(m)
       }
     }
-    // 读取 Service Offering 问卷主观题
-    if (typeof window !== "undefined") {
-      const answersStr = localStorage.getItem("assessment_answers")
-      if (answersStr) {
-        const answers = JSON.parse(answersStr)
-        const serviceOffering = answers?.serviceOffering || {}
-      }
-    }
+    // 移除未使用的代码块，避免 unused-vars
     // 读取 Service Offering 问卷所有题目
     if (typeof window !== "undefined") {
       const answersStr = localStorage.getItem("assessment_answers")
@@ -279,7 +239,7 @@ export function BusinessDashboard() {
 
     // 新增：检查并获取LLM建议
     checkAndFetchAdvice()
-  }, [router])
+  }, [router, checkAndFetchAdvice])
 
   // 自动 POST JSON 到后端
   useEffect(() => {
@@ -294,27 +254,7 @@ export function BusinessDashboard() {
     }
   }, [userId, serviceOffering, pillarReports])
 
-  // 导出/同步按钮
-  async function syncMetricsToBackend() {
-    const payload = {
-      growth_target: metrics["revenue-targets"] || "",
-      employees: metrics["business-size-employees"] || "",
-      annual_revenue: metrics["business-size-revenue"] || "",
-      paying_clients: metrics["paying-clients"] || "",
-      service_offering: metrics["service-type"] || ""
-    }
-    try {
-      const res = await fetch("/api/user-metrics", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-      })
-      if (res.ok) alert("同步成功！")
-      else alert("同步失败")
-    } catch {
-      alert("同步失败")
-    }
-  }
+  // 移除未使用的同步函数，避免 unused-vars
 
   return (
     <div className="min-h-screen bg-slate-900 text-white">
@@ -322,7 +262,7 @@ export function BusinessDashboard() {
       <div className="flex items-center justify-between p-6 border-b border-slate-700">
         <div className="flex items-center space-x-4">
           <div className="flex items-center space-x-2">
-            <img src="/images/ascent-logo.png" alt="logo" className="h-10 w-auto" />
+            <Image src="/images/ascent-logo.png" alt="logo" width={120} height={40} className="h-10 w-auto" />
           </div>
         </div>
       </div>
@@ -334,9 +274,9 @@ export function BusinessDashboard() {
             {/* Welcome Section */}
             <div>
               <h1 className="text-2xl font-bold mb-2">Good evening{userName ? `, ${userName}` : ""}</h1>
-              <p className="text-slate-300 mb-4">
-                Here's the current standing of your business report based on your most recent assessment.
-              </p>
+                              <p className="text-slate-300 mb-4">
+                  Here&apos;s the current standing of your business report based on your most recent assessment.
+                </p>
 
               {/* 新增：LLM建议文本框 */}
               {(llmAdvice || isLoadingAdvice || adviceError) && (
