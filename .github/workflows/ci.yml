@@ -86,7 +86,7 @@ jobs:
         run: |
           set -euo pipefail
           LOG=frontend_server.log
-          
+
           echo "Starting frontend server..."
           if [ -f frontend/pnpm-lock.yaml ]; then
             nohup bash -c "cd frontend && pnpm start" >"$LOG" 2>&1 &
@@ -98,56 +98,54 @@ jobs:
             nohup bash -c "cd frontend && npm run start" >"$LOG" 2>&1 &
             SERVER_PID=$!
           fi
-          
+
           echo "Server started with PID: $SERVER_PID"
-          
-          # Wait a bit for server to fully start
+
+          # Give the server a moment to boot
           echo "Waiting for server to initialize..."
           sleep 10
-          
-          # Check if server process is still running
+
+          # Ensure the process is still alive
           if ! kill -0 $SERVER_PID 2>/dev/null; then
             echo "Server process died. Log contents:"
             cat "$LOG"
             exit 1
           fi
-          
+
           echo "Probing server endpoints..."
           for path in /assessment ${READINESS_PATH}; do
             echo "Probing $path ..."
             for i in {1..120}; do
-              # Use timeout to prevent hanging
               code="$(timeout 10 curl -s -o /dev/null -w "%{http_code}" "http://localhost:3000${path}" 2>/dev/null || echo 000)"
               if [ "$code" -ge 200 ] && [ "$code" -lt 400 ]; then
                 echo "Frontend is up on $path (HTTP $code)."
                 exit 0
               fi
               echo "Attempt $i: HTTP $code for $path"
-              
-              # Check if server is still running
+
               if ! kill -0 $SERVER_PID 2>/dev/null; then
                 echo "Server process died during health check. Log contents:"
                 cat "$LOG"
                 exit 1
               fi
-              
+
               sleep 2
             done
           done
-          
+
           echo "Health check timeout. Server process status:"
           if kill -0 $SERVER_PID 2>/dev/null; then
             echo "Server is running (PID: $SERVER_PID)"
           else
             echo "Server process died"
           fi
-          
+
           echo "Last 200 lines of server log:"
           tail -n 200 "$LOG" || true
-          
+
           echo "Current server log (last 50 lines):"
           tail -n 50 "$LOG" || true
-          
+
           exit 1
       - name: Install Playwright runner + a11y (in test/)
         run: |
@@ -219,7 +217,7 @@ jobs:
         run: |
           set -euo pipefail
           LOG=frontend_server.log
-          
+
           echo "Starting frontend server..."
           if [ -f frontend/pnpm-lock.yaml ]; then
             nohup bash -c "cd frontend && pnpm start" >"$LOG" 2>&1 &
@@ -231,56 +229,52 @@ jobs:
             nohup bash -c "cd frontend && npm run start" >"$LOG" 2>&1 &
             SERVER_PID=$!
           fi
-          
+
           echo "Server started with PID: $SERVER_PID"
-          
-          # Wait a bit for server to fully start
+
           echo "Waiting for server to initialize..."
           sleep 10
-          
-          # Check if server process is still running
+
           if ! kill -0 $SERVER_PID 2>/dev/null; then
             echo "Server process died. Log contents:"
             cat "$LOG"
             exit 1
           fi
-          
+
           echo "Probing server endpoints..."
           for path in ${READINESS_PATH}; do
             echo "Probing $path ..."
             for i in {1..120}; do
-              # Use timeout to prevent hanging
               code="$(timeout 10 curl -s -o /dev/null -w "%{http_code}" "http://localhost:3000${path}" 2>/dev/null || echo 000)"
               if [ "$code" -ge 200 ] && [ "$code" -lt 400 ]; then
                 echo "Frontend is up on $path (HTTP $code)."
                 exit 0
               fi
               echo "Attempt $i: HTTP $code for $path"
-              
-              # Check if server is still running
+
               if ! kill -0 $SERVER_PID 2>/dev/null; then
                 echo "Server process died during health check. Log contents:"
                 cat "$LOG"
                 exit 1
               fi
-              
+
               sleep 2
             done
           done
-          
+
           echo "Health check timeout. Server process status:"
           if kill -0 $SERVER_PID 2>/dev/null; then
             echo "Server is running (PID: $SERVER_PID)"
           else
             echo "Server process died"
           fi
-          
+
           echo "Last 200 lines of server log:"
           tail -n 200 "$LOG" || true
-          
+
           echo "Current server log (last 50 lines):"
           tail -n 50 "$LOG" || true
-          
+
           exit 1
       - name: Run Lighthouse CI (using test/lighthouserc.json)
         run: |
@@ -293,7 +287,7 @@ jobs:
           name: lighthouse-results
           path: ./.lighthouseci
           if-no-files-found: ignore
-          
+
   frontend_quality:
     name: Frontend Lint & Type Check (with ESLint fallback)
     runs-on: ubuntu-latest
@@ -343,14 +337,14 @@ jobs:
               "components/**/*.{js,jsx,ts,tsx}" \
               --no-error-on-unmatched-pattern --max-warnings=0
           fi
-      - name: TypeScript check (tsc --NoEmit if tsconfig.json exists)
+      - name: TypeScript check (tsc --noEmit if tsconfig.json exists)
         working-directory: ./frontend
         run: |
           if [ -f tsconfig.json ]; then
             if [ -f pnpm-lock.yaml ]; then
               pnpm exec tsc --noEmit -p tsconfig.json
             elif [ -f yarn.lock ]; then
-              yarn run -s typecheck || yarn dlx --package typescript@5 tsc --NoEmit -p tsconfig.json
+              yarn run -s typecheck || yarn dlx --package typescript@5 tsc --noEmit -p tsconfig.json
             else
               npm run -s typecheck || npx --yes --package typescript@5 -- tsc --noEmit -p tsconfig.json
             fi
@@ -416,7 +410,7 @@ jobs:
     timeout-minutes: 15
     permissions:
       contents: read
-      security-events: write   
+      security-events: write  # required for SARIF upload
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -456,8 +450,9 @@ jobs:
         with:
           name: npm-audit-report
           path: npm-audit.json
-          if-no-files-found: ignor
-          
+          if-no-files-found: ignore
+
+      # ===== gitleaks via CLI (no license required) =====
       - name: Secret scan (gitleaks) — install CLI
         run: |
           curl -sSfL https://raw.githubusercontent.com/gitleaks/gitleaks/master/install.sh \
