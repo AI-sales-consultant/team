@@ -453,10 +453,19 @@ jobs:
           if-no-files-found: ignore
 
       # ===== gitleaks via CLI (no license required) =====
-      - name: Secret scan (gitleaks) — install CLI
+      - name: Secret scan (gitleaks) — install CLI (latest release)
         run: |
-          curl -sSfL https://raw.githubusercontent.com/gitleaks/gitleaks/master/install.sh \
-          | bash -s -- -b /usr/local/bin
+          set -euo pipefail
+          API="https://api.github.com/repos/gitleaks/gitleaks/releases/latest"
+          ASSET_URL="$(curl -fsSL "$API" | grep -Eo '"browser_download_url":\s*"[^"]+linux_(x64|x86_64)\.tar\.gz"' | head -n1 | cut -d'"' -f4)"
+          if [ -z "$ASSET_URL" ]; then
+            echo "Falling back to any linux tarball from latest release JSON..."
+            ASSET_URL="$(curl -fsSL "$API" | grep -Eo '"browser_download_url":\s*"[^"]+linux[^"]*\.tar\.gz"' | head -n1 | cut -d'"' -f4)"
+          fi
+          echo "Downloading: $ASSET_URL"
+          curl -fsSL "$ASSET_URL" -o gitleaks.tgz
+          tar -xzf gitleaks.tgz gitleaks
+          sudo install -m 0755 gitleaks /usr/local/bin/gitleaks
           gitleaks version
 
       - name: Secret scan (gitleaks) — run
