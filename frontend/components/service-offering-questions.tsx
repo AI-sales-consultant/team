@@ -158,10 +158,16 @@ const serviceOfferingQuestions: Question[] = [
   },
 ]
 
+type ServiceOfferingAnswer = {
+  selectedOption?: string
+  additionalText?: string
+  text?: string
+}
+
 interface ServiceOfferingQuestionsProps {
-  answers: Record<string, any>
-  onAnswer: (questionId: string, answer: any) => void
-  scrollToNextQuestion: (currentQuestionId: string, questions: any[]) => void
+  answers: Record<string, ServiceOfferingAnswer>
+  onAnswer: (questionId: string, answer: ServiceOfferingAnswer) => void
+  scrollToNextQuestion: (currentQuestionId: string, questions: Array<{ id: string }>) => void
 }
 
 export function ServiceOfferingQuestions({ answers, onAnswer, scrollToNextQuestion }: ServiceOfferingQuestionsProps) {
@@ -220,15 +226,7 @@ export function ServiceOfferingQuestions({ answers, onAnswer, scrollToNextQuesti
     return false
   }
 
-  const handleNext = (questionId: string) => {
-    const currentIndex = serviceOfferingQuestions.findIndex((q) => q.id === questionId)
-    if (currentIndex < serviceOfferingQuestions.length - 1) {
-      const nextQuestionId = serviceOfferingQuestions[currentIndex + 1].id
-      setExpandedQuestions(new Set([nextQuestionId]))
-      // Auto scroll to next question
-      scrollToNextQuestion(questionId, serviceOfferingQuestions)
-    }
-  }
+  // 移除未使用的函数
 
   return (
     <div className="space-y-6">

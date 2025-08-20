@@ -62,7 +62,15 @@ export const CATEGORY_MAPPING: Record<string, "Profitable" | "Repeatable" | "Sca
 };
 
 // 计算单个问卷的平均分
-export function calculatePillarScore(answers: Record<string, any>, pillarQuestions: string[]): number {
+export type AnswerOption = {
+  selectedOption?: keyof typeof SCORE_MAPPING | string
+  additionalText?: string
+}
+
+export function calculatePillarScore(
+  answers: Record<string, AnswerOption>,
+  pillarQuestions: string[]
+): number {
   const scores: number[] = []
   
   pillarQuestions.forEach(questionId => {
@@ -82,7 +90,7 @@ export function calculatePillarScore(answers: Record<string, any>, pillarQuestio
 }
 
 // 计算所有六大类的分数
-export function calculateAllPillarScores(answers: Record<string, any>): Record<string, number> {
+export function calculateAllPillarScores(answers: Record<string, AnswerOption>): Record<string, number> {
   // 定义每个pillar对应的问题ID
   const pillarQuestions = {
     "base-camp": [
@@ -120,7 +128,7 @@ export function calculateAllPillarScores(answers: Record<string, any>): Record<s
 }
 
 // 计算三大能力分类的分数
-export function calculateCategoryScores(answers: Record<string, any>): Record<string, number> {
+export function calculateCategoryScores(answers: Record<string, AnswerOption>): Record<string, number> {
   const categories = ["Profitable", "Repeatable", "Scalable"];
   const scores: Record<string, number[]> = {
     Profitable: [],
@@ -178,7 +186,8 @@ function getAdviceCol(score: number): "Top Tips" | "Unnamed: 2" | "Unnamed: 3" {
 // 获取单个pillar的建议文本（同一userId每次都一样）
 export function getAdviceByScore(pillar: string, score: number, userId: string): string {
   const adviceKey = PILLAR_ADVICE_KEY_MAP[pillar]
-  const arr = (pillarAdvice as any)[adviceKey] as any[]
+  const source = pillarAdvice as unknown as Record<string, Array<Record<string, string>>>
+  const arr = source[adviceKey]
   if (!arr || arr.length === 0) return ""
   const col = getAdviceCol(score)
   // 用userId和pillar做hash，保证同一用户同一pillar每次都一样
@@ -196,7 +205,11 @@ export function getAllPillarReports(pillarScores: Record<string, number>, userId
 }
 
 // 保存分数到文件（pillar和category一起）
-export async function saveScoresToFile(userId: string, pillarScores: Record<string, number>, categoryScores: Record<string, number>): Promise<void> {
+export async function saveScoresToFile(
+  userId: string,
+  pillarScores: Record<string, number>,
+  categoryScores: Record<string, number>
+): Promise<void> {
   const pillarReports = getAllPillarReports(pillarScores, userId)
   const scoreData = {
     userId,
@@ -219,28 +232,37 @@ export async function saveScoresToFile(userId: string, pillarScores: Record<stri
   
   // 在服务器环境中保存到文件
   if (typeof window === "undefined") {
-    const fs = require('fs')
-    const path = require('path')
-    
-    const scoresDir = path.join(process.cwd(), 'data', 'scores')
+    const { default: fs } = await import("fs")
+    const { default: path } = await import("path")
+
+    const scoresDir = path.join(process.cwd(), "data", "scores")
     if (!fs.existsSync(scoresDir)) {
       fs.mkdirSync(scoresDir, { recursive: true })
     }
-    
+
     const filename = `pillar_scores_${userId}_${Date.now()}.json`
     const filepath = path.join(scoresDir, filename)
-    
+
     fs.writeFileSync(filepath, JSON.stringify(scoreData, null, 2))
   }
 }
 
 // 获取用户的分数历史
-export function getUserScoreHistory(userId: string): any[] {
+export interface SavedScoreItem {
+  userId: string
+  timestamp: string
+  pillarScores: Record<string, number>
+  categoryScores: Record<string, number>
+  pillarReports: Record<string, string>
+  summary: { pillarAverage: number; categoryAverage: number }
+}
+
+export function getUserScoreHistory(userId: string): SavedScoreItem[] {
   if (typeof window !== "undefined") {
     const data = localStorage.getItem("pillar_scores")
     if (data) {
-      const allScores = JSON.parse(data)
-      return allScores.filter((item: any) => item.userId === userId)
+      const allScores = JSON.parse(data) as SavedScoreItem[]
+      return allScores.filter((item) => item.userId === userId)
     }
   }
   return []

@@ -2,6 +2,7 @@
 
 import { cn } from "@/lib/utils"
 import { Check } from "lucide-react"
+import Image from "next/image"
 
 interface Step {
   id: string
@@ -20,7 +21,7 @@ export function AssessmentSidebar({ steps, currentStep, onStepClick }: Assessmen
     <div className="zoom-safe-sidebar bg-slate-800 p-6">
       {/* Logo */}
       <div className="flex items-center justify-center mb-12">
-        <img src="/images/ascent-logo.png" alt="logo" className="h-16 w-auto" />
+        <Image src="/images/ascent-logo.png" alt="logo" width={160} height={64} className="h-16 w-auto" />
       </div>
 
       {/* Steps */}

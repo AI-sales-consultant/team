@@ -16,8 +16,8 @@ interface Question {
 
 interface QuestionCardProps {
   question: Question
-  answer: any
-  onAnswer: (answer: any) => void
+  answer?: { options?: string[]; additionalText?: string }
+  onAnswer: (answer: { options?: string[]; additionalText?: string }) => void
 }
 
 export function QuestionCard({ question, answer, onAnswer }: QuestionCardProps) {

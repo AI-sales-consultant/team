@@ -5,20 +5,20 @@ import { createContext, useContext, useReducer, useEffect, type ReactNode } from
 
 interface AssessmentState {
   currentStep: number
-  answers: Record<string, any>
+  answers: Record<string, { selectedOption?: string; additionalText?: string; text?: string }>
   isCompleted: boolean
-  reportData: any
+  reportData: Record<string, unknown> | null
   completedSteps: Set<number>
 }
 
 type AssessmentAction =
-  | { type: "SET_ANSWER"; payload: { questionId: string; answer: any } }
+  | { type: "SET_ANSWER"; payload: { questionId: string; answer: { selectedOption?: string; additionalText?: string; text?: string } } }
   | { type: "NEXT_STEP" }
   | { type: "PREV_STEP" }
   | { type: "SET_STEP"; payload: number }
   | { type: "COMPLETE_STEP"; payload: number }
   | { type: "COMPLETE_ASSESSMENT" }
-  | { type: "GENERATE_REPORT"; payload: any }
+  | { type: "GENERATE_REPORT"; payload: Record<string, unknown> }
   | { type: "LOAD_PROGRESS"; payload: Partial<AssessmentState> }
 
 const initialState: AssessmentState = {

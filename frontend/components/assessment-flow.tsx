@@ -1,4 +1,5 @@
 "use client"
+/* eslint-disable no-console */
 
 import { useAssessment } from "@/contexts/assessment-context"
 import { AssessmentSidebar } from "./assessment-sidebar"
@@ -11,8 +12,20 @@ import { ScalingEssentialsQuestions } from "./scaling-essentials-questions"
 import { StreamliningClimbQuestions } from "./streamlining-climb-questions"
 import { AssemblingTeamQuestions } from "./assembling-team-questions"
 import { ToolboxSuccessQuestions } from "./toolbox-success-questions"
-import { calculateAllPillarScores, calculateCategoryScores, saveScoresToFile, getAllPillarReports, CATEGORY_MAPPING } from "@/lib/score-calculator"
+import { calculateAllPillarScores, calculateCategoryScores, saveScoresToFile, CATEGORY_MAPPING } from "@/lib/score-calculator"
 import { useState, useEffect } from "react"
+
+// 定义答案类型接口
+interface AnswerData {
+  text?: string
+  additionalText?: string
+  selectedOption?: string
+}
+
+// 定义结果类型接口
+interface AssessmentResult {
+  [key: string]: Record<string, unknown>
+}
 
 const assessmentSteps = [
   { id: "service-offering", title: "Service Offering", completed: false },
@@ -24,8 +37,8 @@ const assessmentSteps = [
   { id: "toolbox-success", title: "Toolbox for success", completed: false },
 ]
 
-export function generateNewJsonFormat(answers: Record<string, any>) {
-  const result: any = {
+export function generateNewJsonFormat(answers: Record<string, AnswerData>): AssessmentResult {
+  const result: AssessmentResult = {
     serviceOffering: {},
     "Base camp for success (go to market GTM)": {},
     "Tracking the climb (Performance Metrics PM)": {},
@@ -59,7 +72,7 @@ export function generateNewJsonFormat(answers: Record<string, any>) {
 
   // 处理 Service Offering 部分
   let rCounter = 1 // 从R1开始
-  serviceOfferingQuestions.forEach((q, index) => {
+  serviceOfferingQuestions.forEach((q) => {
     const answer = answers[q.id]
     if (!answer) return
 
@@ -167,9 +180,9 @@ export function generateNewJsonFormat(answers: Record<string, any>) {
   ]
 
   // 处理每个部分的问题
-  sectionMappings.forEach((section, sectionIndex) => {
+  sectionMappings.forEach((section) => {
     let questionCounter = 1 // 每个部分从1开始计数
-    section.questions.forEach((q, questionIndex) => {
+    section.questions.forEach((q) => {
       const answer = answers[q.id]
       if (!answer || !answer.selectedOption) return
 
@@ -201,7 +214,7 @@ export function generateNewJsonFormat(answers: Record<string, any>) {
 export function AssessmentFlow() {
   const { state, dispatch } = useAssessment()
   const router = useRouter()
-  const [showFloatingProgress, setShowFloatingProgress] = useState(false)
+  const [, setShowFloatingProgress] = useState(false)
 
   // 监听滚动事件来控制浮动进度条的显示
   useEffect(() => {
@@ -214,7 +227,7 @@ export function AssessmentFlow() {
   }, [])
 
   // 自动滚动到下一个问题的函数
-  const scrollToNextQuestion = (currentQuestionId: string, questions: any[]) => {
+  const scrollToNextQuestion = (currentQuestionId: string, questions: Array<{ id: string }>) => {
     const currentIndex = questions.findIndex((q) => q.id === currentQuestionId)
     if (currentIndex < questions.length - 1) {
       const nextQuestionId = questions[currentIndex + 1].id
@@ -392,13 +405,15 @@ export function AssessmentFlow() {
             try {
               const user = JSON.parse(userStr)
               if (user.email) userId = user.email
-            } catch {}
+            } catch { /* no-op */ }
           }
         }
         // 保存分数到文件
         try {
           await saveScoresToFile(userId, pillarScores, categoryScores)
-          console.log("Pillar & Category scores saved:", pillarScores, categoryScores)
+                      if (process.env.NODE_ENV === "development") {
+              console.log("Pillar & Category scores saved:", pillarScores, categoryScores)
+            }
         } catch (error) {
           console.error("Failed to save scores:", error)
         }
@@ -408,8 +423,10 @@ export function AssessmentFlow() {
         
         // 自动POST到FastAPI
         try {
+                  if (process.env.NODE_ENV === "development") {
           console.log("🚀 开始发送数据到后端...")
           console.log("📤 发送的数据:", newJsonData)
+        }
           
           const response = await fetch("http://localhost:8000/api/save-user-report", {
             method: "POST",
@@ -417,13 +434,34 @@ export function AssessmentFlow() {
             body: JSON.stringify(newJsonData)
           })
           
-          console.log("📥 后端响应状态:", response.status)
-          console.log("📥 后端响应头:", Object.fromEntries(response.headers.entries()))
+                      if (process.env.NODE_ENV === "development") {
+              console.log("📥 后端响应状态:", response.status)
+            }
+          // 兼容性处理：使用类型断言来访问headers.entries()
+          try {
+            const headers = response.headers as unknown as { entries?: () => Iterable<[string, string]> }
+            if (headers.entries && typeof headers.entries === 'function') {
+              const entries = headers.entries()
+              if (process.env.NODE_ENV === "development") {
+                console.log("📥 后端响应头:", Object.fromEntries(entries))
+              }
+                          } else {
+                if (process.env.NODE_ENV === "development") {
+                  console.log("📥 后端响应头: 无法获取（兼容性问题）")
+                }
+              }
+          } catch {
+            if (process.env.NODE_ENV === "development") {
+            console.log("📥 后端响应头: 获取失败")
+          }
+          }
           
           if (response.ok) {
             const responseData = await response.json()
-            console.log("✅ 数据成功发送到后端")
-            console.log("📥 后端返回数据:", responseData)
+            if (process.env.NODE_ENV === "development") {
+              console.log("✅ 数据成功发送到后端")
+              console.log("📥 后端返回数据:", responseData)
+            }
           } else {
             const errorText = await response.text()
             console.warn("⚠️ 后端响应异常:", response.status)
@@ -451,7 +489,7 @@ export function AssessmentFlow() {
     }
   }
 
-  const handleAnswer = (questionId: string, answer: any) => {
+  const handleAnswer = (questionId: string, answer: AnswerData) => {
     dispatch({ type: "SET_ANSWER", payload: { questionId, answer } })
   }
 
