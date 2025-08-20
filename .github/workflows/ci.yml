@@ -347,11 +347,10 @@ jobs:
         working-directory: ./frontend
         run: |
           if [ -f tsconfig.json ]; then
-            
             if [ -f pnpm-lock.yaml ]; then
               pnpm exec tsc --noEmit -p tsconfig.json
             elif [ -f yarn.lock ]; then
-              yarn run -s typecheck || yarn dlx --package typescript@5 tsc --noEmit -p tsconfig.json
+              yarn run -s typecheck || yarn dlx --package typescript@5 tsc --NoEmit -p tsconfig.json
             else
               npm run -s typecheck || npx --yes --package typescript@5 -- tsc --noEmit -p tsconfig.json
             fi
@@ -415,6 +414,9 @@ jobs:
     name: Security Audit (pip & npm & secrets)
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    permissions:
+      contents: read
+      security-events: write   
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -454,11 +456,31 @@ jobs:
         with:
           name: npm-audit-report
           path: npm-audit.json
-          if-no-files-found: ignore
-      - name: Secret scan (gitleaks)
-        uses: gitleaks/gitleaks-action@v2
+          if-no-files-found: ignor
+          
+      - name: Secret scan (gitleaks) — install CLI
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/gitleaks/gitleaks/master/install.sh \
+          | bash -s -- -b /usr/local/bin
+          gitleaks version
+
+      - name: Secret scan (gitleaks) — run
+        run: |
+          gitleaks detect \
+            --source . \
+            --no-git \
+            -v \
+            --redact \
+            --report-format sarif \
+            --report-path gitleaks.sarif \
+            --config .github/gitleaks.toml
+
+      - name: Upload SARIF (gitleaks)
+        if: ${{ github.event.pull_request.head.repo.fork == false }}
+        uses: github/codeql-action/upload-sarif@v3
         with:
-          args: detect --source . --no-git -v --report-format sarif --report-path gitleaks.sarif
+          sarif_file: gitleaks.sarif
+
       - name: Upload gitleaks report
         if: always()
         uses: actions/upload-artifact@v4
