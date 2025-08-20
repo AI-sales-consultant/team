@@ -36,4 +36,4 @@ if __name__ == "__main__":
         print(f"Query result for ('{q_id_3}', '{cat_3}'): (Should return the first match)")
         print(answer_3)
     else:
-        print(f"Result for ('{q_id_3}', '{cat_3}') not found.")```
+        print(f"Result for ('{q_id_3}', '{cat_3}') not found.")

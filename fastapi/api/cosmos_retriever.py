@@ -1,8 +1,8 @@
 import os
 import logging
-from typing import Optional
+from typing import Optional, List, Dict, Any
 from dotenv import load_dotenv
-from azure.cosmos import CosmosClient
+from azure.cosmos import CosmosClient, ContainerProxy
 
 # --- 配置 ---
 load_dotenv()
@@ -14,11 +14,17 @@ CONTAINER_NAME = "answers"
 # --- 全局客户端实例 ---
 # 在生产环境（如FastAPI应用）中，CosmosClient实例应该在应用启动时创建一次并全局复用，
 # 以避免在每个请求中都建立新连接的开销。
+client: Optional[CosmosClient] = None
+container_client: Optional[ContainerProxy] = None
+
 try:
-    client = CosmosClient(url=ENDPOINT, credential=KEY)
-    database_client = client.get_database_client(DATABASE_NAME)
-    container_client = database_client.get_container_client(CONTAINER_NAME)
-    logging.info("Cosmos DB client initialized successfully for cosmos_retriever module.")
+    if ENDPOINT and KEY:
+        client = CosmosClient(url=ENDPOINT, credential=KEY)
+        database_client = client.get_database_client(DATABASE_NAME)
+        container_client = database_client.get_container_client(CONTAINER_NAME)
+        logging.info("Cosmos DB client initialized successfully for cosmos_retriever module.")
+    else:
+        logging.error("Missing required environment variables: COSMOS_ENDPOINT or COSMOS_KEY")
 except Exception as e:
     client = None
     container_client = None
@@ -46,7 +52,7 @@ def get_answer_text(question_id: str, category: str) -> Optional[str]:
         "WHERE c.question_id = @question_id AND c.category = @category"
     )
     
-    parameters = [
+    parameters: List[Dict[str, Any]] = [
         {"name": "@question_id", "value": question_id},
         {"name": "@category", "value": category},
     ]

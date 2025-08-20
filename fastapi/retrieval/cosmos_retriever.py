@@ -1,9 +1,9 @@
 # --- Configuration ---
 import os
 import logging
-from typing import Optional
+from typing import Optional, List, Dict, Any
 from dotenv import load_dotenv
-from azure.cosmos import CosmosClient
+from azure.cosmos import CosmosClient, ContainerProxy
 
 load_dotenv()
 ENDPOINT = os.getenv("COSMOS_ENDPOINT")
@@ -16,11 +16,17 @@ CONTAINER_NAME = "answers"
 # should be initialized once at application startup and reused globally. This singleton-like
 # pattern is a best practice that prevents the performance overhead of creating a new
 # database connection for each request.
+client: Optional[CosmosClient] = None
+container_client: Optional[ContainerProxy] = None
+
 try:
-    client = CosmosClient(url=ENDPOINT, credential=KEY)
-    database_client = client.get_database_client(DATABASE_NAME)
-    container_client = database_client.get_container_client(CONTAINER_NAME)
-    logging.info("Cosmos DB client initialized successfully for cosmos_retriever module.")
+    if ENDPOINT and KEY:
+        client = CosmosClient(url=ENDPOINT, credential=KEY)
+        database_client = client.get_database_client(DATABASE_NAME)
+        container_client = database_client.get_container_client(CONTAINER_NAME)
+        logging.info("Cosmos DB client initialized successfully for cosmos_retriever module.")
+    else:
+        logging.error("Missing required environment variables: COSMOS_ENDPOINT or COSMOS_KEY")
 except Exception as e:
     client = None
     container_client = None
@@ -46,7 +52,7 @@ def get_answer_text(question_id: str, category: str) -> Optional[str]:
         "SELECT c.text FROM c "
         "WHERE c.question_id = @question_id AND c.category = @category"
     )
-    parameters = [
+    parameters: List[Dict[str, Any]] = [
         {"name": "@question_id", "value": question_id},
         {"name": "@category", "value": category},
     ]

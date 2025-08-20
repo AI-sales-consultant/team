@@ -4,7 +4,6 @@ import os
 import sys
 import pytest
 import threading
-import time
 import importlib
 
 # Keep the minimal path tweak to allow 'cosmos_retriever' import from parent.
