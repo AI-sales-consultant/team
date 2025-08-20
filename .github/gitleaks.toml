@@ -1,0 +1,17 @@
+# .github/gitleaks.toml
+title = "gitleaks configuration for this repo"
+
+[allowlist]
+# Ignore common test & docs paths to reduce false positives
+paths = [
+  'fastapi/tests/.*',
+  'test/.*',
+  'docs/.*',
+  '.*\\.md$'
+]
+
+# Ignore typical dummy/example secrets used in samples
+regexes = [
+  '(?i)dummy(_?key|_?token|_?secret)',
+  '(?i)example(_?key|_?token|_?secret)'
+]
