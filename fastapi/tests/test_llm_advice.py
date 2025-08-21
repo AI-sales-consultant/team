@@ -1,7 +1,6 @@
 # test_llm_advice.py - Test LLM advice generation functionality
 
 import pytest
-import asyncio
 from unittest.mock import patch, MagicMock, AsyncMock
 from main import generate_advice_for_question
 
@@ -27,15 +26,19 @@ class TestGenerateAdviceForQuestion:
         }
     
         with patch("main.get_answer_text", return_value="Base advice text"):
-            with patch("main.client.chat.completions.create", new_callable=AsyncMock) as mock_create:
-                mock_create.return_value.choices = [MagicMock()]
-                mock_create.return_value.choices[0].message.content = "Generated advice"
+            with patch("main.get_openai_client") as mock_get_client:
+                mock_client = MagicMock()
+                mock_response = MagicMock()
+                mock_response.choices = [MagicMock()]
+                mock_response.choices[0].message.content = "Generated advice"
+                mock_client.chat.completions.create = AsyncMock(return_value=mock_response)
+                mock_get_client.return_value = mock_client
     
                 result = await generate_advice_for_question(q_data, business_profile)
     
                 assert result["question"] == "How to improve?"
                 assert result["advice"] == "Generated advice"
-                mock_create.assert_called_once()
+                mock_client.chat.completions.create.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_generate_advice_with_additional_text(self):
@@ -55,14 +58,18 @@ class TestGenerateAdviceForQuestion:
         }
     
         with patch("main.get_answer_text", return_value="Base advice"):
-            with patch("main.client.chat.completions.create", new_callable=AsyncMock) as mock_create:
-                mock_create.return_value.choices = [MagicMock()]
-                mock_create.return_value.choices[0].message.content = "Advice"
+            with patch("main.get_openai_client") as mock_get_client:
+                mock_client = MagicMock()
+                mock_response = MagicMock()
+                mock_response.choices = [MagicMock()]
+                mock_response.choices[0].message.content = "Advice"
+                mock_client.chat.completions.create = AsyncMock(return_value=mock_response)
+                mock_get_client.return_value = mock_client
     
-                result = await generate_advice_for_question(q_data, business_profile)
+                await generate_advice_for_question(q_data, business_profile)
     
                 # Verify that additionalText is used in the prompt
-                mock_create.assert_called_once()
+                mock_client.chat.completions.create.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_generate_advice_fallback_to_answer(self):
@@ -82,14 +89,18 @@ class TestGenerateAdviceForQuestion:
         }
     
         with patch("main.get_answer_text", return_value="Base advice"):
-            with patch("main.client.chat.completions.create", new_callable=AsyncMock) as mock_create:
-                mock_create.return_value.choices = [MagicMock()]
-                mock_create.return_value.choices[0].message.content = "Advice"
+            with patch("main.get_openai_client") as mock_get_client:
+                mock_client = MagicMock()
+                mock_response = MagicMock()
+                mock_response.choices = [MagicMock()]
+                mock_response.choices[0].message.content = "Advice"
+                mock_client.chat.completions.create = AsyncMock(return_value=mock_response)
+                mock_get_client.return_value = mock_client
     
-                result = await generate_advice_for_question(q_data, business_profile)
+                await generate_advice_for_question(q_data, business_profile)
     
                 # Verify that anwser is used in the prompt
-                mock_create.assert_called_once()
+                mock_client.chat.completions.create.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_generate_advice_api_error(self):
@@ -107,7 +118,7 @@ class TestGenerateAdviceForQuestion:
         }
     
         with patch("main.get_answer_text", return_value="Base advice"):
-            with patch("main.client.chat.completions.create", new_callable=AsyncMock, side_effect=Exception("API Error")):
+            with patch("main.get_openai_client", side_effect=Exception("API Error")):
                 result = await generate_advice_for_question(q_data, business_profile)
                 
                 assert "Failed to generate advice due to an error" in result["advice"]
@@ -128,14 +139,18 @@ class TestGenerateAdviceForQuestion:
         }
     
         with patch("main.get_answer_text", return_value=None):
-            with patch("main.client.chat.completions.create", new_callable=AsyncMock) as mock_create:
-                mock_create.return_value.choices = [MagicMock()]
-                mock_create.return_value.choices[0].message.content = "Advice"
+            with patch("main.get_openai_client") as mock_get_client:
+                mock_client = MagicMock()
+                mock_response = MagicMock()
+                mock_response.choices = [MagicMock()]
+                mock_response.choices[0].message.content = "Advice"
+                mock_client.chat.completions.create = AsyncMock(return_value=mock_response)
+                mock_get_client.return_value = mock_client
     
-                result = await generate_advice_for_question(q_data, business_profile)
+                await generate_advice_for_question(q_data, business_profile)
     
                 # Verify that default text is used
-                mock_create.assert_called_once()
+                mock_client.chat.completions.create.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_generate_advice_missing_question_data(self):
@@ -153,9 +168,13 @@ class TestGenerateAdviceForQuestion:
         }
     
         with patch("main.get_answer_text", return_value="Base advice"):
-            with patch("main.client.chat.completions.create", new_callable=AsyncMock) as mock_create:
-                mock_create.return_value.choices = [MagicMock()]
-                mock_create.return_value.choices[0].message.content = "Advice"
+            with patch("main.get_openai_client") as mock_get_client:
+                mock_client = MagicMock()
+                mock_response = MagicMock()
+                mock_response.choices = [MagicMock()]
+                mock_response.choices[0].message.content = "Advice"
+                mock_client.chat.completions.create = AsyncMock(return_value=mock_response)
+                mock_get_client.return_value = mock_client
     
                 result = await generate_advice_for_question(q_data, business_profile)
     
@@ -200,14 +219,18 @@ class TestGenerateAdviceForQuestion:
         }
     
         with patch("main.get_answer_text", return_value="Base advice"):
-            with patch("main.client.chat.completions.create", new_callable=AsyncMock) as mock_create:
-                mock_create.return_value.choices = [MagicMock()]
-                mock_create.return_value.choices[0].message.content = "Advice"
+            with patch("main.get_openai_client") as mock_get_client:
+                mock_client = MagicMock()
+                mock_response = MagicMock()
+                mock_response.choices = [MagicMock()]
+                mock_response.choices[0].message.content = "Advice"
+                mock_client.chat.completions.create = AsyncMock(return_value=mock_response)
+                mock_get_client.return_value = mock_client
     
                 await generate_advice_for_question(q_data, business_profile)
                 
                 # Verify that the business profile was used in the system prompt
-                call_args = mock_create.call_args
+                call_args = mock_client.chat.completions.create.call_args
                 system_message = call_args[1]['messages'][0]['content']
                 assert "Technology" in system_message
                 assert "Digital Transformation" in system_message

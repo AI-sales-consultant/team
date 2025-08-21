@@ -1,8 +1,18 @@
 import os
 import logging
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, TYPE_CHECKING
 from dotenv import load_dotenv
-from azure.cosmos import CosmosClient, ContainerProxy
+
+# Import only CosmosClient to avoid import issues
+if TYPE_CHECKING:
+    from azure.cosmos import CosmosClient, ContainerProxy
+else:
+    try:
+        from azure.cosmos import CosmosClient, ContainerProxy
+    except ImportError:
+        # Fallback for environments without azure-cosmos
+        CosmosClient = Any
+        ContainerProxy = Any
 
 # --- 配置 ---
 load_dotenv()

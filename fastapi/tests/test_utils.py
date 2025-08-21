@@ -1,8 +1,6 @@
 # test_utils.py - Test utility functions
 
 import pytest
-import tempfile
-import os
 from unittest.mock import patch, mock_open
 from main import load_score_rules, check_weighting, extract_business_profile
 
