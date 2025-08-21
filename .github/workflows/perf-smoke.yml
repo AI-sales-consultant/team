@@ -1,0 +1,132 @@
+name: Performance Smoke (Locust 60s)
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  perf-smoke:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          # performance tool
+          pip install locust
+
+      # Put runtime CSV where your code expects it (api/score_rule.csv)
+      - name: Prepare runtime assets
+        run: |
+          set -euo pipefail
+          mkdir -p api
+          if [ -f fastapi/api/score_rule.csv ]; then
+            cp -f fastapi/api/score_rule.csv api/score_rule.csv
+          fi
+
+      # Start your FastAPI app as an independent process with stubs for external deps
+      - name: Start FastAPI (background, with stubs)
+        run: |
+          set -euo pipefail
+          python - <<'PY' &
+          import importlib.util, pathlib, sys, os, types, uvicorn
+
+          repo = pathlib.Path(os.environ.get("GITHUB_WORKSPACE",".")).resolve()
+          # ---- stubs: openai / azure.cosmos ----
+          if "openai" not in sys.modules:
+              openai_stub = types.ModuleType("openai")
+              class _Msg:  # minimal compatible shape
+                  def __init__(self, c): self.content = c
+              class _Choice:
+                  def __init__(self, c): self.message = _Msg(c)
+              class _Resp:
+                  def __init__(self, c): self.choices = [_Choice(c)]
+              class _Comps:
+                  def create(self, **k): return _Resp("Stubbed LLM advice")
+              class _Chat:
+                  def __init__(self): self.completions = _Comps()
+              class AzureOpenAI:
+                  def __init__(self, *a, **k): self.chat = _Chat()
+              openai_stub.AzureOpenAI = AzureOpenAI
+              sys.modules["openai"] = openai_stub
+
+          if "azure" not in sys.modules:
+              sys.modules["azure"] = types.ModuleType("azure")
+          if "azure.cosmos" not in sys.modules:
+              cosmos_stub = types.ModuleType("azure.cosmos")
+              class _Cont:  # no-op container
+                  def query_items(self, *a, **k): return []
+              class _DB:
+                  def get_container_client(self, *a, **k): return _Cont()
+              class CosmosClient:
+                  def __init__(self, *a, **k): ...
+                  def get_database_client(self, *a, **k): return _DB()
+              cosmos_stub.CosmosClient = CosmosClient
+              sys.modules["azure.cosmos"] = cosmos_stub
+              setattr(sys.modules["azure"], "cosmos", cosmos_stub)
+
+          # ---- import path fix so "from api..." resolves to fastapi/api ----
+          project_root = repo
+          fastapi_dir = str(project_root / "fastapi")
+          sys.path = [p for p in sys.path if pathlib.Path(p).resolve() != project_root]
+          if fastapi_dir not in sys.path:
+              sys.path.insert(0, fastapi_dir)
+
+          # ---- import app and run uvicorn ----
+          spec = importlib.util.spec_from_file_location(
+              "app_main_under_test", str(project_root / "fastapi" / "main.py")
+          )
+          mod = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(mod)
+          uvicorn.run(mod.app, host="0.0.0.0", port=8000, log_level="warning")
+          PY
+
+          # readiness check
+          for i in {1..60}; do
+            curl -fsS http://localhost:8000/docs >/dev/null && { echo "API up"; break; }
+            sleep 1
+          done
+          curl -fsS http://localhost:8000/docs >/dev/null || { echo "::error::API failed to start"; exit 1; }
+
+      - name: Run Locust (60s headless)
+        run: |
+          locust -f locustfile.py --headless -u 20 -r 5 -t 60s --host http://localhost:8000 --html locust_report.html --csv smoke
+
+      # Perf gates (tune thresholds as needed)
+      - name: Gate on perf thresholds
+        run: |
+          python - <<'PY'
+          import csv, sys
+          with open('smoke_stats.csv', newline='') as f:
+              rows = list(csv.DictReader(f))
+          agg = next((x for x in rows if x.get('Name') == 'Aggregated' or x.get('Type')=='Aggregated'), None)
+          if not agg:
+              sys.exit("No Aggregated row in smoke_stats.csv")
+          # Locust CSV headings may vary slightly; try both possibilities
+          fail_ratio = float(agg.get('Fail Ratio') or agg.get('Failure Ratio') or 0)
+          p95 = float(agg.get('95%') or agg.get('95') or 0)
+          print(f"PerfGate: fail_ratio={fail_ratio}, p95={p95} ms")
+          if fail_ratio > 0.01 or p95 > 500:
+              sys.exit("Perf gate failed")
+          PY
+
+      - name: Upload Locust artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: perf-smoke-artifacts
+          path: |
+            locust_report.html
+            smoke_stats.csv
+            smoke_failures.csv
+            smoke_distribution.csv
