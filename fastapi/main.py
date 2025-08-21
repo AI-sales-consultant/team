@@ -33,16 +33,27 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# NEW: Use the async client for concurrent API calls
-azure_endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
-if not azure_endpoint:
-    raise ValueError("AZURE_OPENAI_ENDPOINT environment variable is required")
+# Initialize OpenAI client lazily to avoid import-time failures
+_client = None
 
-client = openai.AsyncAzureOpenAI(
-    api_key=os.getenv("AZURE_OPENAI_API_KEY"),
-    azure_endpoint=azure_endpoint,
-    api_version="2024-02-15-preview"
-)
+def get_openai_client():
+    """Get OpenAI client, initializing it if needed"""
+    global _client
+    if _client is None:
+        azure_endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
+        if not azure_endpoint:
+            raise ValueError("AZURE_OPENAI_ENDPOINT environment variable is required")
+        
+        api_key = os.getenv("AZURE_OPENAI_API_KEY")
+        if not api_key:
+            raise ValueError("AZURE_OPENAI_API_KEY environment variable is required")
+            
+        _client = openai.AsyncAzureOpenAI(
+            api_key=api_key,
+            azure_endpoint=azure_endpoint,
+            api_version="2024-02-15-preview"
+        )
+    return _client
 
 def load_score_rules(csv_path: str) -> Dict[str, List[str]]:
     rules = {}
@@ -131,7 +142,7 @@ async def generate_advice_for_question(q_data: Dict[str, Any], business_profile:
         if not model_name:
             raise ValueError("AZURE_OPENAI_DEPLOYMENT environment variable is required")
             
-        response = await client.chat.completions.create(
+        response = await get_openai_client().chat.completions.create(
             model=model_name,
             messages=[
                 {"role": "system", "content": SYSTEM_PROMPT_TEMPLATE.format(**business_profile)},
@@ -163,7 +174,7 @@ async def save_user_report(data: AssessmentData):
 
 @app.post("/api/llm-advice", response_model=LLMAdviceResponse)
 async def get_llm_advice(request: LLMAdviceRequest):
-    assessment_data = request.assessmentData.dict()
+    assessment_data = request.assessmentData.model_dump()
     service_offering = assessment_data.get('serviceOffering', {})
     score_rules = load_score_rules('api/score_rule.csv')
     

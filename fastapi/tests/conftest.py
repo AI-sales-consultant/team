@@ -2,7 +2,6 @@
 
 import pytest
 from unittest.mock import MagicMock
-from typing import Dict, Any
 
 
 @pytest.fixture

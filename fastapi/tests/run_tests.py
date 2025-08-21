@@ -2,8 +2,6 @@
 # run_tests.py - Test runner script
 
 import subprocess
-import sys
-import os
 from pathlib import Path
 
 
@@ -54,13 +52,13 @@ def main():
     
     # Check if pytest is installed
     try:
-        import pytest
-        print("✅ pytest is installed")
+        import importlib.util
+        if importlib.util.find_spec("pytest"):
+            print("✅ pytest is installed")
+        else:
+            print("❌ pytest is not installed")
     except ImportError:
-        print("❌ pytest not installed, installing...")
-        if not run_command("pip3 install pytest pytest-asyncio", "Install pytest"):
-            print("Unable to install pytest, please install manually")
-            return
+        print("❌ pytest is not installed")
     
     # Check test files
     test_files = list(current_dir.glob("test_*.py"))
@@ -140,11 +138,13 @@ def main():
             print("\n📊 Running test coverage check...")
             # Check if coverage is installed
             try:
-                import coverage
-                print("✅ coverage is installed")
+                import importlib.util
+                if importlib.util.find_spec("coverage"):
+                    print("✅ coverage is installed")
+                else:
+                    print("❌ coverage is not installed")
             except ImportError:
-                print("📦 Installing coverage...")
-                run_command("pip3 install coverage", "Install coverage")
+                print("❌ coverage is not installed")
             
             success = run_command(
                 f"cd {project_root} && coverage run -m python3 -m pytest {current_dir}",
