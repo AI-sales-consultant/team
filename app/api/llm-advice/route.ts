@@ -13,35 +13,40 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 这里将来会调用后端的LLM服务
-    // 目前返回模拟数据，等待后端接口完成后替换
-    const mockAdvice = {
-      advice: `Based on your assessment results, I provide the following business recommendations:
+    // 调用后端FastAPI服务
+    try {
+      const backendResponse = await fetch("http://127.0.0.1:8000/api/llm-advice", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          userId: userId,
+          assessmentData: assessmentData
+        })
+      })
 
-🎯 **Key Findings**
-Your business performs well across multiple dimensions, particularly in customer service and team collaboration. Here are targeted improvement suggestions:
+      if (!backendResponse.ok) {
+        throw new Error(`Backend API error: ${backendResponse.status}`)
+      }
 
-📈 **Priority Improvement Areas**
-1. **Process Optimization**: Recommend implementing more systematic project management processes
-2. **Technology Upgrade**: Consider introducing automation tools to improve efficiency
-3. **Market Expansion**: Explore new market opportunities based on existing advantages
+      const backendData = await backendResponse.json()
+      
+      // 返回后端的数据
+      return NextResponse.json(backendData)
 
-💡 **Specific Action Recommendations**
-• Establish weekly team review meeting mechanisms
-• Invest in customer relationship management systems
-• Develop quarterly goal tracking systems
-
-🚀 **Expected Outcomes**
-After implementing these recommendations, you can expect to see significant efficiency improvements and customer satisfaction enhancements within 3-6 months.
-
-*This advice is generated based on your assessment data. Regular re-assessment is recommended to track progress.*`,
-      timestamp: new Date().toISOString()
+    } catch (backendError) {
+      console.error("Backend API call failed:", backendError)
+      
+      // 如果后端调用失败，返回错误信息
+      return NextResponse.json(
+        { 
+          error: "Failed to get AI advice from backend service",
+          details: backendError instanceof Error ? backendError.message : "Unknown error"
+        },
+        { status: 503 }
+      )
     }
-
-    // 模拟API延迟
-    await new Promise(resolve => setTimeout(resolve, 2000))
-
-    return NextResponse.json(mockAdvice)
 
   } catch (error) {
     console.error("LLM Advice API Error:", error)
