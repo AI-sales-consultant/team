@@ -1,0 +1,6 @@
+[run]
+parallel = true
+source = cosmos_retriever
+
+[report]
+show_missing = true
