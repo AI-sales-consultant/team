@@ -25,13 +25,13 @@ jobs:
           # performance tool
           pip install locust
 
-      # Put runtime CSV where your code expects it (backend/api/score_rule.csv)
+      # Put runtime CSV where your code expects it (api/score_rule.csv)
       - name: Prepare runtime assets
         run: |
           set -euo pipefail
           mkdir -p api
-                      if [ -f backend/api/score_rule.csv ]; then
-              cp -f backend/api/score_rule.csv backend/api/score_rule.csv
+          if [ -f fastapi/api/score_rule.csv ]; then
+            cp -f fastapi/api/score_rule.csv api/score_rule.csv
           fi
 
       # Start your FastAPI app as an independent process with stubs for external deps
