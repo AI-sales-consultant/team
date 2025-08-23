@@ -40,9 +40,9 @@ def get_openai_client():
     """Get OpenAI client, initializing it if needed"""
     global _client
     if _client is None:
-azure_endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
-if not azure_endpoint:
-    raise ValueError("AZURE_OPENAI_ENDPOINT environment variable is required")
+        azure_endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
+        if not azure_endpoint:
+            raise ValueError("AZURE_OPENAI_ENDPOINT environment variable is required")
 
         api_key = os.getenv("AZURE_OPENAI_API_KEY")
         if not api_key:
@@ -50,9 +50,9 @@ if not azure_endpoint:
             
         _client = openai.AsyncAzureOpenAI(
             api_key=api_key,
-    azure_endpoint=azure_endpoint,
-    api_version="2024-02-15-preview"
-)
+            azure_endpoint=azure_endpoint,
+            api_version="2024-02-15-preview"
+        )
     return _client
 
 def load_score_rules(csv_path: str) -> Dict[str, List[str]]:

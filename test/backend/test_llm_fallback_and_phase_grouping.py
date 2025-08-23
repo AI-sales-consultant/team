@@ -10,7 +10,8 @@ def test_fallback_message_and_phase_grouping():
     with patch.object(appmod, "get_answer_text", return_value="Standard answer text"):
         # Force the OpenAI client to raise to trigger fallback path
         class Boom(Exception): ...
-        with patch.object(appmod, "client") as fake_client:
+        with patch.object(appmod, "get_openai_client") as fake_get_client:
+            fake_client = fake_get_client.return_value
             fake_client.chat.completions.create.side_effect = Boom("boom")
             with patch.object(appmod, "load_score_rules", return_value={}):
                 payload = {

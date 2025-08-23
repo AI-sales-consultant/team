@@ -1,10 +1,9 @@
-from pydantic import BaseModel, Extra
+from pydantic import BaseModel, ConfigDict
 from typing import Dict, Any
 
 class AssessmentData(BaseModel):
     serviceOffering: Dict[str, Any]
-    class Config:
-        extra = Extra.allow  # 允许其它任意字段
+    model_config = ConfigDict(extra='allow')  # 允许其它任意字段
 
 class LLMAdviceRequest(BaseModel):
     userId: str
