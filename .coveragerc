@@ -1,6 +1,6 @@
 [run]
 omit =
-    fastapi/api/cosmos_retriever.py
+    */api/cosmos_retriever.py
     */__init__.py
 
 [report]
