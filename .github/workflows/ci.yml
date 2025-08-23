@@ -21,6 +21,7 @@ jobs:
         with:
           python-version: "3.11"
           cache: "pip"
+
       - name: Install backend dependencies
         run: |
           python -m pip install --upgrade pip
@@ -32,8 +33,10 @@ jobs:
           else
             pip install fastapi "pydantic>=2" starlette httpx pytest pytest-cov
           fi
+
       - name: Run pytest with coverage gate (>=80%)
         run: pytest
+
       - name: Upload coverage.xml artifact
         if: always()
         uses: actions/upload-artifact@v4
@@ -48,20 +51,24 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
+
       - name: Setup Yarn via Corepack
         if: ${{ hashFiles('frontend/yarn.lock') != '' }}
         run: |
           corepack enable
           corepack prepare yarn@1.22.19 --activate
+
       - name: Setup pnpm
         if: ${{ hashFiles('frontend/pnpm-lock.yaml') != '' }}
         uses: pnpm/action-setup@v4
         with:
           version: 9
+
       - name: Install frontend dependencies
         working-directory: ./frontend
         run: |
@@ -74,91 +81,77 @@ jobs:
             [ -f package-lock.json ] || npm install --package-lock-only
             npm ci || npm i
           fi
+
       - name: Build frontend
         working-directory: ./frontend
         run: |
-          if [ -f pnpm-lock.yaml ]; then pnpm run build;
-          elif [ -f yarn.lock ]; then yarn build;
-          else npm run build; fi
+          if [ -f pnpm-lock.yaml ]; then
+            pnpm run build
+          elif [ -f yarn.lock ]; then
+            yarn build
+          else
+            npm run build
+          fi
+
       - name: Start frontend server and probe readiness
         env:
           READINESS_PATH: "/"
         run: |
           set -euo pipefail
           LOG=frontend_server.log
-
           echo "Starting frontend server..."
           if [ -f frontend/pnpm-lock.yaml ]; then
-            nohup bash -c "cd frontend && pnpm start" >"$LOG" 2>&1 &
-            SERVER_PID=$!
+            nohup bash -c "cd frontend && pnpm start" >"$LOG" 2>&1 & SERVER_PID=$!
           elif [ -f frontend/yarn.lock ]; then
-            nohup bash -c "cd frontend && yarn start" >"$LOG" 2>&1 &
-            SERVER_PID=$!
+            nohup bash -c "cd frontend && yarn start" >"$LOG" 2>&1 & SERVER_PID=$!
           else
-            nohup bash -c "cd frontend && npm run start" >"$LOG" 2>&1 &
-            SERVER_PID=$!
+            nohup bash -c "cd frontend && npm run start" >"$LOG" 2>&1 & SERVER_PID=$!
           fi
-
           echo "Server started with PID: $SERVER_PID"
-
-          # Give the server a moment to boot
           echo "Waiting for server to initialize..."
           sleep 10
-
-          # Ensure the process is still alive
           if ! kill -0 $SERVER_PID 2>/dev/null; then
-            echo "Server process died. Log contents:"
-            cat "$LOG"
-            exit 1
+            echo "Server process died. Log contents:"; cat "$LOG"; exit 1
           fi
-
           echo "Probing server endpoints..."
           for path in /assessment ${READINESS_PATH}; do
             echo "Probing $path ..."
             for i in {1..120}; do
               code="$(timeout 10 curl -s -o /dev/null -w "%{http_code}" "http://localhost:3000${path}" 2>/dev/null || echo 000)"
               if [ "$code" -ge 200 ] && [ "$code" -lt 400 ]; then
-                echo "Frontend is up on $path (HTTP $code)."
-                exit 0
+                echo "Frontend is up on $path (HTTP $code)."; exit 0
               fi
               echo "Attempt $i: HTTP $code for $path"
-
               if ! kill -0 $SERVER_PID 2>/dev/null; then
-                echo "Server process died during health check. Log contents:"
-                cat "$LOG"
-                exit 1
+                echo "Server process died during health check. Log contents:"; cat "$LOG"; exit 1
               fi
-
               sleep 2
             done
           done
-
           echo "Health check timeout. Server process status:"
-          if kill -0 $SERVER_PID 2>/dev/null; then
-            echo "Server is running (PID: $SERVER_PID)"
-          else
-            echo "Server process died"
-          fi
-
-          echo "Last 200 lines of server log:"
-          tail -n 200 "$LOG" || true
-
-          echo "Current server log (last 50 lines):"
-          tail -n 50 "$LOG" || true
-
+          if kill -0 $SERVER_PID 2>/dev/null; then echo "Server is running (PID: $SERVER_PID)"; else echo "Server process died"; fi
+          echo "Last 200 lines of server log:"; tail -n 200 "$LOG" || true
+          echo "Current server log (last 50 lines):"; tail -n 50 "$LOG" || true
           exit 1
+
       - name: Install Playwright runner + a11y (in test/)
         run: |
           set -e
           mkdir -p test
-          if [ -f test/package.json ]; then npm -C test ci || npm -C test install; else npm -C test init -y; fi
+          if [ -f test/package.json ]; then
+            npm -C test ci || npm -C test install
+          else
+            npm -C test init -y
+          fi
           npm -C test ls @playwright/test >/dev/null 2>&1 || npm -C test install --no-save @playwright/test@^1.46
           npm -C test ls @axe-core/playwright >/dev/null 2>&1 || npm -C test install --no-save @axe-core/playwright
           npx --prefix test playwright install --with-deps
+
       - name: Run Playwright tests (trace/screenshot/video, retries=1)
         env:
           CI: true
         run: npx --prefix test playwright test -c test/playwright.config.ts
+
       - name: Upload Playwright HTML report
         if: always()
         uses: actions/upload-artifact@v4
@@ -166,6 +159,7 @@ jobs:
           name: playwright-report
           path: test/playwright-report
           if-no-files-found: ignore
+
       - name: Upload Playwright traces
         if: always()
         uses: actions/upload-artifact@v4
@@ -183,16 +177,19 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+
       - name: Setup Yarn via Corepack
         if: ${{ hashFiles('frontend/yarn.lock') != '' }}
         run: |
           corepack enable
           corepack prepare yarn@1.22.19 --activate
+
       - name: Setup pnpm
         if: ${{ hashFiles('frontend/pnpm-lock.yaml') != '' }}
         uses: pnpm/action-setup@v4
         with:
           version: 9
+
       - name: Install frontend dependencies
         working-directory: ./frontend
         run: |
@@ -205,81 +202,64 @@ jobs:
             [ -f package-lock.json ] || npm install --package-lock-only
             npm ci || npm i
           fi
+
       - name: Build frontend
         working-directory: ./frontend
         run: |
-          if [ -f pnpm-lock.yaml ]; then pnpm run build;
-          elif [ -f yarn.lock ]; then yarn build;
-          else npm run build; fi
+          if [ -f pnpm-lock.yaml ]; then
+            pnpm run build
+          elif [ -f yarn.lock ]; then
+            yarn build
+          else
+            npm run build
+          fi
+
       - name: Start frontend server and probe readiness
         env:
           READINESS_PATH: "/"
         run: |
           set -euo pipefail
           LOG=frontend_server.log
-
           echo "Starting frontend server..."
           if [ -f frontend/pnpm-lock.yaml ]; then
-            nohup bash -c "cd frontend && pnpm start" >"$LOG" 2>&1 &
-            SERVER_PID=$!
+            nohup bash -c "cd frontend && pnpm start" >"$LOG" 2>&1 & SERVER_PID=$!
           elif [ -f frontend/yarn.lock ]; then
-            nohup bash -c "cd frontend && yarn start" >"$LOG" 2>&1 &
-            SERVER_PID=$!
+            nohup bash -c "cd frontend && yarn start" >"$LOG" 2>&1 & SERVER_PID=$!
           else
-            nohup bash -c "cd frontend && npm run start" >"$LOG" 2>&1 &
-            SERVER_PID=$!
+            nohup bash -c "cd frontend && npm run start" >"$LOG" 2>&1 & SERVER_PID=$!
           fi
-
           echo "Server started with PID: $SERVER_PID"
-
           echo "Waiting for server to initialize..."
           sleep 10
-
           if ! kill -0 $SERVER_PID 2>/dev/null; then
-            echo "Server process died. Log contents:"
-            cat "$LOG"
-            exit 1
+            echo "Server process died. Log contents:"; cat "$LOG"; exit 1
           fi
-
           echo "Probing server endpoints..."
           for path in ${READINESS_PATH}; do
             echo "Probing $path ..."
             for i in {1..120}; do
               code="$(timeout 10 curl -s -o /dev/null -w "%{http_code}" "http://localhost:3000${path}" 2>/dev/null || echo 000)"
               if [ "$code" -ge 200 ] && [ "$code" -lt 400 ]; then
-                echo "Frontend is up on $path (HTTP $code)."
-                exit 0
+                echo "Frontend is up on $path (HTTP $code)."; exit 0
               fi
               echo "Attempt $i: HTTP $code for $path"
-
               if ! kill -0 $SERVER_PID 2>/dev/null; then
-                echo "Server process died during health check. Log contents:"
-                cat "$LOG"
-                exit 1
+                echo "Server process died during health check. Log contents:"; cat "$LOG"; exit 1
               fi
-
               sleep 2
             done
           done
-
           echo "Health check timeout. Server process status:"
-          if kill -0 $SERVER_PID 2>/dev/null; then
-            echo "Server is running (PID: $SERVER_PID)"
-          else
-            echo "Server process died"
-          fi
-
-          echo "Last 200 lines of server log:"
-          tail -n 200 "$LOG" || true
-
-          echo "Current server log (last 50 lines):"
-          tail -n 50 "$LOG" || true
-
+          if kill -0 $SERVER_PID 2>/dev/null; then echo "Server is running (PID: $SERVER_PID)"; else echo "Server process died"; fi
+          echo "Last 200 lines of server log:"; tail -n 200 "$LOG" || true
+          echo "Current server log (last 50 lines):"; tail -n 50 "$LOG" || true
           exit 1
+
       - name: Run Lighthouse CI (using test/lighthouserc.json)
         run: |
           npm -C test install --no-save @lhci/cli@0.13.x
           npx --yes lhci autorun --config=./test/lighthouserc.json
+
       - name: Upload Lighthouse results
         if: always()
         uses: actions/upload-artifact@v4
@@ -297,22 +277,30 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+
       - name: Setup Yarn via Corepack
         if: ${{ hashFiles('frontend/yarn.lock') != '' }}
         run: |
           corepack enable
           corepack prepare yarn@1.22.19 --activate
+
       - name: Setup pnpm
         if: ${{ hashFiles('frontend/pnpm-lock.yaml') != '' }}
         uses: pnpm/action-setup@v4
         with:
           version: 9
+
       - name: Install frontend dependencies
         working-directory: ./frontend
         run: |
-          if [ -f pnpm-lock.yaml ]; then pnpm install --frozen-lockfile || pnpm install --no-frozen-lockfile;
-          elif [ -f yarn.lock ]; then yarn install --frozen-lockfile || yarn install;
-          else npm ci || npm i; fi
+          if [ -f pnpm-lock.yaml ]; then
+            pnpm install --frozen-lockfile || pnpm install --no-frozen-lockfile
+          elif [ -f yarn.lock ]; then
+            yarn install --frozen-lockfile || yarn install
+          else
+            npm ci || npm i
+          fi
+
       - name: ESLint (project config or CI fallback - fully isolated)
         working-directory: ./frontend
         shell: bash
@@ -337,6 +325,7 @@ jobs:
               "components/**/*.{js,jsx,ts,tsx}" \
               --no-error-on-unmatched-pattern --max-warnings=0
           fi
+
       - name: TypeScript check (tsc --noEmit if tsconfig.json exists)
         working-directory: ./frontend
         run: |
@@ -362,14 +351,34 @@ jobs:
         with:
           python-version: "3.11"
           cache: "pip"
+
       - name: Install quality tools
         run: |
           python -m pip install --upgrade pip
           pip install ruff mypy
-      - name: Run ruff on fastapi/ and test/
-        run: ruff check fastapi test
+
+      - name: Run ruff (auto-detect paths)
+        shell: bash
+        run: |
+          set -euo pipefail
+          paths=""
+          for p in backend fastapi tests test; do
+            [ -d "$p" ] && paths="$paths $p"
+          done
+          ruff check ${paths:-.}
+
       - name: Run mypy (ignore missing imports)
-        run: mypy fastapi --ignore-missing-imports --install-types --non-interactive
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -d backend ]; then
+            target="backend"
+          elif [ -d fastapi ]; then
+            target="fastapi"
+          else
+            target="."
+          fi
+          mypy "$target" --ignore-missing-imports --install-types --non-interactive
 
   perf_locust:
     name: Performance Smoke (Locust 60s)
@@ -381,21 +390,36 @@ jobs:
         with:
           python-version: "3.11"
           cache: "pip"
+
       - name: Install app deps and Locust
         run: |
           python -m pip install --upgrade pip
-          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          if [ -f requirements.txt ]; then
+            pip install -r requirements.txt
+          fi
           pip install uvicorn locust
+
       - name: Start FastAPI (background)
+        shell: bash
         run: |
-          nohup bash -c "uvicorn fastapi.main:app --host 0.0.0.0 --port 8000" >/tmp/api.log 2>&1 &
+          set -euo pipefail
+          if [ -f backend/main.py ]; then
+            MODULE="backend.main:app"
+          elif [ -f fastapi/main.py ]; then
+            MODULE="fastapi.main:app"
+          else
+            echo "Cannot find main.py in backend/ or fastapi/"; exit 1
+          fi
+          nohup bash -c "uvicorn $MODULE --host 0.0.0.0 --port 8000" >/tmp/api.log 2>&1 &
           for i in {1..60}; do
             if curl -fsS http://localhost:8000/docs >/dev/null; then echo 'API up'; break; fi
             sleep 1
           done
+
       - name: Run Locust headless for 60s
         run: |
           locust -f locustfile.py --headless -u 20 -r 5 -t 60s --host http://localhost:8000 --html locust_report.html --csv smoke
+
       - name: Upload Locust report artifacts
         if: always()
         uses: actions/upload-artifact@v4
@@ -410,12 +434,14 @@ jobs:
     timeout-minutes: 15
     permissions:
       contents: read
-      security-events: write  # required for SARIF upload
+      security-events: write
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+
       - name: Run pip-audit
         run: |
           python -m pip install --upgrade pip
@@ -425,6 +451,7 @@ jobs:
           else
             pip-audit -f json -o pip-audit.json
           fi
+
       - name: Upload pip-audit report
         if: always()
         uses: actions/upload-artifact@v4
@@ -432,9 +459,11 @@ jobs:
           name: pip-audit-report
           path: pip-audit.json
           if-no-files-found: ignore
+
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+
       - name: Run npm audit (frontend)
         working-directory: ./frontend
         run: |
@@ -444,6 +473,7 @@ jobs:
             echo "No package.json found in frontend."
             exit 1
           fi
+
       - name: Upload npm-audit report
         if: always()
         uses: actions/upload-artifact@v4
