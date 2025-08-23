@@ -29,10 +29,10 @@ container_client: Optional[ContainerProxy] = None
 
 try:
     if ENDPOINT and KEY:
-        client = CosmosClient(url=ENDPOINT, credential=KEY)
-        database_client = client.get_database_client(DATABASE_NAME)
-        container_client = database_client.get_container_client(CONTAINER_NAME)
-        logging.info("Cosmos DB client initialized successfully for cosmos_retriever module.")
+    client = CosmosClient(url=ENDPOINT, credential=KEY)
+    database_client = client.get_database_client(DATABASE_NAME)
+    container_client = database_client.get_container_client(CONTAINER_NAME)
+    logging.info("Cosmos DB client initialized successfully for cosmos_retriever module.")
     else:
         logging.error("Missing required environment variables: COSMOS_ENDPOINT or COSMOS_KEY")
 except Exception as e:
