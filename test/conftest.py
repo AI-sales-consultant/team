@@ -45,7 +45,7 @@ def pytest_configure(config):  # noqa: ARG001  (pytest hook signature)
     os.chdir(str(REPO_ROOT))
     (REPO_ROOT / "api").mkdir(exist_ok=True)
     src = API_DIR / "score_rule.csv"
-    dst = REPO_ROOT / "api" / "score_rule.csv"
+            dst = REPO_ROOT / "backend" / "api" / "score_rule.csv"
     if src.exists() and not dst.exists():
         try:
             shutil.copyfile(src, dst)

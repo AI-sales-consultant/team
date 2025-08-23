@@ -176,7 +176,7 @@ async def save_user_report(data: AssessmentData):
 async def get_llm_advice(request: LLMAdviceRequest):
     assessment_data = request.assessmentData.model_dump()
     service_offering = assessment_data.get('serviceOffering', {})
-    score_rules = load_score_rules('api/score_rule.csv')
+            score_rules = load_score_rules('backend/api/score_rule.csv')
     
     # 1. MODIFIED: Extract business profile using the new adaptive helper
     business_profile = extract_business_profile(service_offering)
