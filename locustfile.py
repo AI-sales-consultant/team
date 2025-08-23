@@ -69,13 +69,13 @@ def _install_test_stubs():
 
 
 def _ensure_imports_resolve(root: pathlib.Path) -> None:
-    fastapi_layer = str(root / "fastapi")
-    if fastapi_layer not in sys.path:
-        sys.path.insert(0, fastapi_layer)
+    backend_layer = str(root / "backend")
+    if backend_layer not in sys.path:
+        sys.path.insert(0, backend_layer)
 
 
 def _ensure_runtime_assets(root: pathlib.Path, cwd: pathlib.Path) -> None:
-    src = root / "fastapi" / "api" / "score_rule.csv"
+    src = root / "backend" / "api" / "score_rule.csv"
     dst_dir = cwd / "api"
     dst = dst_dir / "score_rule.csv"
     if dst.exists():
@@ -98,7 +98,7 @@ def _maybe_boot_local_api(environment, **_):
         return
 
     repo_root = pathlib.Path(__file__).resolve().parent
-    main_py = repo_root / "fastapi" / "main.py"
+    main_py = repo_root / "backend" / "main.py"
     if not main_py.exists() or uvicorn is None:
         print(f"[locust] WARN: cannot self-boot API (main.py/uvicorn missing).")
         return

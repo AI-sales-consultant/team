@@ -2,7 +2,7 @@
 Pytest bootstrap for backend tests.
 
 - Ensures repository working directory and import paths are correct.
-- Makes `fastapi/api` resolvable as the `api` package for absolute imports.
+- Makes `backend/api` resolvable as the `api` package for absolute imports.
 - Provides tiny stubs for OpenAI and Cosmos retriever so tests do not depend
   on external services or secrets.
 - Ensures runtime asset `api/score_rule.csv` exists at CWD for code that uses
@@ -20,9 +20,9 @@ import types
 
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[1]
-PROJECT_FASTAPI_DIR = REPO_ROOT / "fastapi"
-MAIN_FILE = PROJECT_FASTAPI_DIR / "main.py"
-API_DIR = PROJECT_FASTAPI_DIR / "api"
+PROJECT_BACKEND_DIR = REPO_ROOT / "backend"
+MAIN_FILE = PROJECT_BACKEND_DIR / "main.py"
+API_DIR = PROJECT_BACKEND_DIR / "api"
 
 
 def _load(name: str, path: str):
@@ -40,7 +40,7 @@ def pytest_configure(config):  # noqa: ARG001  (pytest hook signature)
     """
     Prepare runtime environment before any tests are collected:
     - chdir to repo root;
-    - ensure ./api/score_rule.csv exists (copy from fastapi/api if needed).
+    - ensure ./api/score_rule.csv exists (copy from backend/api if needed).
     """
     os.chdir(str(REPO_ROOT))
     (REPO_ROOT / "api").mkdir(exist_ok=True)
@@ -56,11 +56,11 @@ def pytest_configure(config):  # noqa: ARG001  (pytest hook signature)
 def pytest_sessionstart(session):  # noqa: ARG001  (pytest hook signature)
     """
     Make application imports resolvable and install test doubles:
-    - alias fastapi/api as top-level package 'api';
+    - alias backend/api as top-level package 'api';
     - install a minimal cosmos retriever and openai client stub;
     - (optionally) import the FastAPI app to catch import errors early.
     """
-    # Alias `fastapi/api` as package "api"
+    # Alias `backend/api` as package "api"
     api_pkg = types.ModuleType("api")
     api_pkg.__path__ = [str(API_DIR)]
     sys.modules["api"] = api_pkg
