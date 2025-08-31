@@ -1,396 +1,304 @@
-# 团队评估系统 - 项目启动指南
+# 前端应用 (Frontend)
 
-## 项目概述
+基于Next.js 15和React 19的现代化企业评估系统前端应用。
 
-这是一个基于 Next.js 前端和 FastAPI 后端的团队评估系统。系统提供用户评估问卷、数据分析和LLM建议生成功能。
+## 🚀 快速开始
 
-## 技术栈
+### 安装依赖
+```bash
+npm install --legacy-peer-deps
+```
 
-### 前端
-- **框架**: Next.js 15.3.4
-- **语言**: TypeScript
-- **UI库**: Radix UI + Tailwind CSS
-- **状态管理**: React Context
+### 启动开发服务器
+```bash
+npm run dev
+```
+
+应用将在 http://localhost:3000 启动
+
+## 📋 技术栈
+
+- **框架**: Next.js 15 (App Router)
+- **UI库**: React 19, TypeScript
+- **样式**: Tailwind CSS
+- **组件库**: Radix UI
+- **图标**: Lucide React
+- **状态管理**: React Context + useReducer
 - **表单处理**: React Hook Form + Zod
 
-### 后端
-- **框架**: FastAPI
-- **语言**: Python 3.10+
-- **AI服务**: Azure OpenAI
-- **数据库**: Azure Cosmos DB
-- **服务器**: Uvicorn
-
-## 环境要求
-
-- **Node.js**: 18.0.0 或更高版本
-- **Python**: 3.10 或更高版本
-- **包管理器**: npm 或 pnpm
-
-## 当前项目结构
+## 📁 详细项目结构
 
 ```
-team/
-├── app/                    # Next.js 前端应用
-│   ├── admin/             # 管理员页面
-│   ├── api/               # Next.js API路由
-│   ├── assessment/        # 评估页面
-│   ├── dashboard/         # 仪表板页面
-│   ├── globals.css        # 全局样式
-│   ├── layout.tsx         # 布局组件
-│   └── page.tsx           # 首页
-├── backend/
-│   └── Fastapi/          # 完整的FastAPI后端 (推荐使用)
-│       ├── main.py       # 主应用文件
-│       ├── main_safe.py  # 安全版本 (无需Azure凭据)
-│       ├── api/          # API模块
-│       │   ├── models.py # 数据模型
-│       │   ├── prompts.py # 提示词模板
-│       │   ├── cosmos_retriever.py # Cosmos DB检索
-│       │   └── score_rule.csv # 评分规则
-│       ├── requirements.txt # Python依赖
-│       ├── .env          # 环境变量配置
-│       └── README.md     # 后端文档
-├── components/            # React 组件
-│   ├── ui/               # UI组件库
-│   ├── assessment-flow.tsx # 评估流程
-│   ├── business-dashboard.tsx # 业务仪表板
-│   └── ...其他组件
-├── contexts/             # React Context
-│   └── assessment-context.tsx # 评估上下文
-├── lib/                  # 工具函数和配置
-│   ├── auth.ts           # 认证工具
-│   ├── score-calculator.ts # 评分计算
-│   └── utils.ts          # 通用工具
-├── data/                 # 数据文件
-│   └── scores/           # 评分数据
-├── hooks/                # 自定义Hooks
-├── public/               # 静态资源
-│   └── images/           # 图片资源
-├── styles/               # 样式文件
-├── backup/               # 备份文件
-│   ├── fastapi_backup/   # 原fastapi目录备份
-│   └── main_backup.py    # 原main.py备份
-├── package.json          # 前端依赖配置
-├── next.config.mjs       # Next.js配置
-├── tailwind.config.ts    # Tailwind配置
-└── tsconfig.json         # TypeScript配置
+frontend/
+├── 📁 app/                    # Next.js App Router
+│   ├── 📁 admin/             # 管理员页面
+│   │   └── page.tsx          # 管理员仪表板
+│   ├── 📁 api/               # API路由
+│   │   └── 📁 llm-advice/
+│   │       └── route.ts      # LLM建议API代理
+│   ├── 📁 assessment/        # 评估页面
+│   │   └── page.tsx          # 评估问卷页面
+│   ├── 📁 dashboard/         # 仪表板页面
+│   │   └── page.tsx          # 商业仪表板
+│   ├── globals.css           # 全局样式
+│   ├── layout.tsx            # 根布局组件
+│   └── page.tsx              # 首页 (登录页面)
+│
+├── 📁 components/            # React组件
+│   ├── 📁 ui/               # 基础UI组件 (50个文件)
+│   │   ├── accordion.tsx    # 手风琴组件
+│   │   ├── alert-dialog.tsx # 警告对话框
+│   │   ├── avatar.tsx       # 头像组件
+│   │   ├── badge.tsx        # 徽章组件
+│   │   ├── button.tsx       # 按钮组件
+│   │   ├── calendar.tsx     # 日历组件
+│   │   ├── card.tsx         # 卡片组件
+│   │   ├── checkbox.tsx     # 复选框组件
+│   │   ├── collapsible.tsx  # 可折叠组件
+│   │   ├── command.tsx      # 命令组件
+│   │   ├── context-menu.tsx # 上下文菜单
+│   │   ├── dialog.tsx       # 对话框组件
+│   │   ├── dropdown-menu.tsx # 下拉菜单
+│   │   ├── form.tsx         # 表单组件
+│   │   ├── hover-card.tsx   # 悬停卡片
+│   │   ├── input.tsx        # 输入框组件
+│   │   ├── label.tsx        # 标签组件
+│   │   ├── menubar.tsx      # 菜单栏
+│   │   ├── navigation-menu.tsx # 导航菜单
+│   │   ├── popover.tsx      # 弹出框
+│   │   ├── progress.tsx     # 进度条
+│   │   ├── radio-group.tsx  # 单选按钮组
+│   │   ├── scroll-area.tsx  # 滚动区域
+│   │   ├── select.tsx       # 选择器
+│   │   ├── separator.tsx   # 分隔符
+│   │   ├── sheet.tsx        # 侧边栏
+│   │   ├── skeleton.tsx     # 骨架屏
+│   │   ├── slider.tsx       # 滑块
+│   │   ├── switch.tsx       # 开关
+│   │   ├── table.tsx        # 表格
+│   │   ├── tabs.tsx         # 标签页
+│   │   ├── textarea.tsx     # 文本域
+│   │   ├── toast.tsx        # 消息提示
+│   │   ├── toggle.tsx       # 切换按钮
+│   │   ├── toggle-group.tsx # 切换按钮组
+│   │   ├── tooltip.tsx      # 工具提示
+│   │   └── utils.ts         # 工具函数
+│   │
+│   ├── assembling-team-questions.tsx    # 团队组建问题组件
+│   ├── assessment-flow.tsx              # 评估流程主组件
+│   ├── assessment-sidebar.tsx           # 评估侧边栏
+│   ├── base-camp-questions.tsx          # 基础营地问题组件
+│   ├── business-dashboard.tsx           # 商业仪表板组件
+│   ├── login-form.tsx                  # 登录表单组件
+│   ├── question-card.tsx               # 问题卡片组件
+│   ├── scaling-essentials-questions.tsx # 扩展要素问题组件
+│   ├── service-offering-questions.tsx  # 服务提供问题组件
+│   ├── streamlining-climb-questions.tsx # 优化流程问题组件
+│   ├── terms-modal.tsx                 # 条款模态框组件
+│   ├── theme-provider.tsx              # 主题提供者
+│   ├── theme-switcher.tsx              # 主题切换器
+│   ├── theme-toggle.tsx                # 主题切换按钮
+│   ├── toaster.tsx                     # 消息提示组件
+│   ├── toolbox-success-questions.tsx  # 成功工具箱问题组件
+│   └── tracking-climb-questions.tsx    # 跟踪进展问题组件
+│
+├── 📁 contexts/             # React Context
+│   └── assessment-context.tsx # 评估状态管理上下文
+│
+├── 📁 data/                 # 数据文件
+│   └── 📁 scores/
+│       └── example_scores.json # 示例分数数据
+│
+├── 📁 hooks/                # 自定义Hooks
+│   ├── use-mobile.tsx      # 移动端检测Hook
+│   └── use-toast.ts         # 消息提示Hook
+│
+├── 📁 lib/                  # 工具函数和配置
+│   ├── auth.ts              # 认证相关工具函数
+│   ├── pillar-advice.json  # 支柱建议数据
+│   ├── score-calculator.ts # 分数计算器
+│   └── utils.ts             # 通用工具函数
+│
+├── 📁 public/               # 静态资源
+│   └── 📁 images/
+│       ├── ascent-logo-home.png    # 首页Logo
+│       ├── ascent-logo.png         # 主Logo
+│       ├── dashboard-bg.png        # 仪表板背景
+│       ├── login-bg.png           # 登录背景
+│       ├── questionnaire-bg.png  # 问卷背景
+│       ├── register-form.png     # 注册表单背景
+│       └── request-call-form.png # 请求通话表单背景
+│
+├── 📁 styles/               # 样式文件
+│   └── globals.css          # 全局样式
+│
+├── 📁 user-exports/         # 用户导出数据
+│   ├── 953921736@qq.com.json      # 用户评估数据
+│   ├── user_default.json         # 默认用户数据
+│   └── yzx953921736@gmail.com.json # 用户评估数据
+│
+├── 📁 backup/               # 备份文件
+│   ├── 📁 fastapi_backup/   # FastAPI备份
+│   │   ├── 📁 api/          # API备份
+│   │   ├── 📁 tests/        # 测试备份
+│   │   ├── main.py          # 主文件备份
+│   │   ├── requirements.txt # 依赖备份
+│   │   └── README.md        # 文档备份
+│   └── main_backup.py       # 主文件备份
+│
+├── components.json          # Radix UI组件配置
+├── next-env.d.ts            # Next.js类型定义
+├── next.config.mjs         # Next.js配置文件
+├── package.json             # 前端依赖配置
+├── postcss.config.mjs      # PostCSS配置
+├── tailwind.config.ts      # Tailwind CSS配置
+├── tsconfig.json           # TypeScript配置
+├── test-api.html           # API测试页面
+├── test-backend.html       # 后端测试页面
+├── test-json-format.html  # JSON格式测试页面
+├── README.md               # 前端文档
+└── UI_MODIFICATIONS_LOG.md # UI修改日志
 ```
 
-## 启动指南
+## 🎨 主要功能
 
-### 前端启动
+### 1. 用户认证
+- 登录表单 (`login-form.tsx`)
+- 用户会话管理 (`auth.ts`)
+- 本地存储用户信息
+
+### 2. 评估问卷
+- 7个核心业务模块问题组件
+- 实时进度保存 (`assessment-context.tsx`)
+- 响应式设计
+
+### 3. 结果展示
+- 动态仪表板 (`business-dashboard.tsx`)
+- 雷达图可视化
+- LLM建议展示
+
+### 4. 数据导出
+- JSON格式导出 (`user-exports/`)
+- 用户报告生成
+
+## 🔧 开发指南
+
+### 添加新组件
+```tsx
+// components/MyComponent.tsx
+"use client"
+
+import { useState } from "react"
+
+export function MyComponent() {
+  const [state, setState] = useState()
+  
+  return (
+    <div>
+      {/* 组件内容 */}
+    </div>
+  )
+}
+```
+
+### 使用Context
+```tsx
+import { useAssessment } from "@/contexts/assessment-context"
+
+function MyComponent() {
+  const { state, dispatch } = useAssessment()
+  
+  // 使用状态和分发器
+}
+```
+
+### 样式指南
+- 使用Tailwind CSS类名
+- 支持深色/浅色主题
+- 响应式设计优先
+
+### 添加新页面
+```tsx
+// app/new-page/page.tsx
+export default function NewPage() {
+  return (
+    <div>
+      {/* 页面内容 */}
+    </div>
+  )
+}
+```
+
+## 🧪 测试
+
 ```bash
-# 在项目根目录
-npm run dev
-# 访问: http://localhost:3000
+# 运行单元测试
+npm test
+
+# 运行E2E测试
+npm run test:e2e
 ```
 
-### 后端启动
-```bash
-# 进入后端目录
-cd backend/Fastapi
-
-# 方式1: 使用完整版本 (需要Azure凭据)
-uvicorn main:app --reload --host 127.0.0.1 --port 8000
-
-# 方式2: 使用安全版本 (无需Azure凭据)
-python main_safe.py
-
-# 访问: http://127.0.0.1:8000
-# API文档: http://127.0.0.1:8000/docs
-```
-
-## 环境变量配置
-
-在 `backend/Fastapi/.env` 文件中配置：
-
-```env
-# Azure OpenAI 配置
-AZURE_OPENAI_API_KEY=your_actual_api_key_here
-AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com/
-AZURE_OPENAI_DEPLOYMENT=your-deployment-name
-
-# Azure Cosmos DB 配置
-COSMOS_ENDPOINT=https://your-cosmos-account.documents.azure.com:443/
-COSMOS_KEY=your_actual_cosmos_key_here
-```
-
-## 详细启动步骤
-
-### 1. 克隆项目
+## 📦 构建
 
 ```bash
-git clone <项目仓库地址>
-cd team
-```
-
-### 2. 前端启动
-
-#### 安装依赖
-```bash
-# 使用 npm
-npm install --legacy-peer-deps
-
-# 或使用 pnpm (推荐)
-pnpm install --legacy-peer-deps
-```
-
-#### 启动开发服务器
-```bash
-# 使用 npm
-npm run dev
-
-# 或使用 pnpm
-pnpm dev
-```
-
-前端将在 `http://localhost:3000` 启动
-
-### 3. 后端启动
-
-#### 进入后端目录
-```bash
-cd backend/Fastapi
-```
-
-#### 创建虚拟环境 (推荐)
-```bash
-# Windows
-python -m venv venv
-venv\Scripts\activate
-
-# macOS/Linux
-python3 -m venv venv
-source venv/bin/activate
-```
-
-#### 安装依赖
-```bash
-pip install -r requirements.txt
-```
-
-#### 配置环境变量
-在 `backend/Fastapi/` 目录下创建 `.env` 文件：
-
-```env
-# Azure OpenAI 配置
-AZURE_OPENAI_API_KEY=your_azure_openai_api_key_here
-AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com/
-AZURE_OPENAI_DEPLOYMENT=your-deployment-name
-
-# Azure Cosmos DB 配置 (注意变量名与代码中的一致)
-COSMOS_ENDPOINT=https://your-cosmos-account.documents.azure.com:443/
-COSMOS_KEY=your_cosmos_db_master_key_here
-```
-
-**重要提示**: 
-- 确保 `.env` 文件在 `backend/Fastapi/` 目录下
-- Cosmos DB 的变量名是 `COSMOS_ENDPOINT` 和 `COSMOS_KEY`（不是 `AZURE_COSMOS_*`）
-- 数据库名称和容器名称在代码中已硬编码为 `PromptEngineeringDB` 和 `answers`
-
-#### 启动后端服务
-```bash
-# 方式1: 使用完整版本 (需要Azure凭据)
-uvicorn main:app --reload --host 127.0.0.1 --port 8000
-
-# 方式2: 使用安全版本 (无需Azure凭据)
-python main_safe.py
-
-# 方式3: 直接运行 main.py
-python main.py
-```
-
-后端将在 `http://127.0.0.1:8000` 启动
-
-### 4. 验证启动
-
-#### 前端验证
-访问 `http://localhost:3000`，应该能看到应用首页
-
-#### 后端验证
-访问 `http://127.0.0.1:8000`，应该能看到 API 欢迎页面
-
-访问 `http://127.0.0.1:8000/docs` 查看 API 文档
-
-## 开发模式
-
-### 前端开发
-- 支持热重载
-- 修改代码后自动刷新浏览器
-- 支持 TypeScript 类型检查
-
-### 后端开发
-- 支持热重载 (使用 `--reload` 参数)
-- 自动重新加载代码变更
-- 实时查看 API 文档
-
-## 常用命令
-
-### 前端命令
-```bash
-# 开发模式
-npm run dev
-
 # 构建生产版本
 npm run build
 
 # 启动生产服务器
 npm start
-
-# 代码检查
-npm run lint
 ```
 
-### 后端命令
-```bash
-# 开发模式启动
-uvicorn main:app --reload
-
-# 或使用安全版本
-python main_safe.py
-
-# 运行测试
-python -m pytest tests/
-```
-
-## 环境配置说明
-
-### 必需的环境变量
-
-1. **Azure OpenAI 配置**
-   - `AZURE_OPENAI_API_KEY`: Azure OpenAI API 密钥
-   - `AZURE_OPENAI_ENDPOINT`: Azure OpenAI 端点 (格式: `https://your-resource.openai.azure.com/`)
-   - `AZURE_OPENAI_DEPLOYMENT`: 部署名称
-
-2. **Azure Cosmos DB 配置**
-   - `COSMOS_ENDPOINT`: Cosmos DB 端点 (格式: `https://your-cosmos-account.documents.azure.com:443/`)
-   - `COSMOS_KEY`: Cosmos DB 主密钥
-   - 数据库名称: `PromptEngineeringDB` (硬编码)
-   - 容器名称: `answers` (硬编码)
-
-### 获取环境变量
-
-1. 联系项目管理员获取 Azure 服务配置信息
-2. 在 Azure 门户中创建相应的服务
-3. 将配置信息添加到 `.env` 文件中
-
-## 故障排除
+## 🔍 故障排除
 
 ### 常见问题
 
-1. **端口被占用**
+1. **依赖安装失败**
    ```bash
-   # 查找占用端口的进程
-   netstat -ano | findstr :3000
-   netstat -ano | findstr :8000
-   
-   # 终止进程
-   taskkill /PID <进程ID> /F
-   ```
-
-2. **依赖安装失败**
-   ```bash
-   # 清除缓存重新安装
-   npm cache clean --force
-   rm -rf node_modules package-lock.json
    npm install --legacy-peer-deps
    ```
 
-3. **Python 虚拟环境问题**
-   ```bash
-   # 重新创建虚拟环境
-   deactivate
-   rm -rf venv
-   python -m venv venv
-   source venv/bin/activate  # Linux/Mac
-   venv\Scripts\activate     # Windows
-   pip install -r requirements.txt
-   ```
+2. **端口冲突**
+   - 检查3000端口是否被占用
+   - 修改 `package.json` 中的启动脚本
 
-4. **CORS 错误**
-   - 确保前端运行在 `http://localhost:3000`
-   - 确保后端运行在 `http://127.0.0.1:8000`
-   - 检查后端 CORS 配置
+3. **API连接失败**
+   - 确认后端服务在8000端口运行
+   - 检查CORS配置
 
-5. **Azure OpenAI 凭据错误**
-   ```
-   openai.OpenAIError: Missing credentials. Please pass one of `api_key`, `azure_ad_token`, `azure_ad_token_provider`, or the `AZURE_OPENAI_API_KEY` or `AZURE_OPENAI_AD_TOKEN` environment variables.
-   ```
-   **解决方案**:
-   - 确保在 `backend/Fastapi/.env` 文件中正确设置了 Azure OpenAI 凭据
-   - 检查环境变量名称是否正确（注意大小写）
-   - 确保 `.env` 文件在正确的目录中
+4. **TypeScript错误**
+   - 检查类型定义
+   - 运行 `npm run type-check`
 
-6. **Cosmos DB 客户端初始化失败**
-   ```
-   ERROR:root:Failed to initialize Cosmos DB client: Unrecognized credential type
-   ```
-   **解决方案**:
-   - 检查 `backend/Fastapi/.env` 文件中的 Cosmos DB 配置
-   - 确保使用了正确的环境变量名称（注意代码中使用的是 `COSMOS_ENDPOINT` 和 `COSMOS_KEY`）
-   - 验证 Azure Cosmos DB 的访问密钥是否正确
+## 📝 环境变量
 
-7. **环境变量配置问题**
-   **正确的 `.env` 文件格式**:
-   ```env
-   # Azure OpenAI 配置
-   AZURE_OPENAI_API_KEY=your_azure_openai_api_key_here
-   AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com/
-   AZURE_OPENAI_DEPLOYMENT=your-deployment-name
-   
-   # Azure Cosmos DB 配置 (注意变量名)
-   COSMOS_ENDPOINT=https://your-cosmos-account.documents.azure.com:443/
-   COSMOS_KEY=your_cosmos_db_master_key_here
-   ```
+创建 `.env.local` 文件：
 
-### 日志查看
+```env
+BACKEND_URL=http://localhost:8000
+NEXT_PUBLIC_API_URL=http://localhost:8000
+```
 
-- **前端日志**: 在浏览器开发者工具中查看
-- **后端日志**: 在终端中查看启动信息
+## 📊 性能优化
 
-## 部署说明
+### 代码分割
+- 使用动态导入
+- 组件懒加载
+- 路由级别分割
 
-### 生产环境部署
+### 缓存策略
+- 静态资源缓存
+- API响应缓存
+- 用户数据缓存
 
-1. **前端部署**
-   ```bash
-   npm run build
-   npm start
-   ```
+## 🔒 安全考虑
 
-2. **后端部署**
-   ```bash
-   uvicorn main:app --host 0.0.0.0 --port 8000
-   ```
+### 输入验证
+- 使用Zod进行表单验证
+- XSS防护
+- CSRF保护
 
-## 快速检查清单
-
-在启动项目前，请确保：
-
-- [ ] Node.js 已安装 (版本 18.0.0+)
-- [ ] Python 已安装 (版本 3.10+)
-- [ ] 项目已克隆到本地
-- [ ] 后端 `.env` 文件已正确配置
-- [ ] 端口 3000 和 8000 未被占用
-
-## 联系信息
-
-如有问题，请联系项目维护者或查看项目文档。
-
----
-
-**注意**: 首次启动时，请确保所有环境变量都已正确配置，否则某些功能可能无法正常工作。
-
-## 常见错误解决
-
-### 如果您遇到 "Missing credentials" 错误：
-
-1. 确保在 `backend/Fastapi/.env` 文件中设置了正确的 Azure OpenAI 凭据
-2. 检查环境变量名称是否正确（注意大小写）
-3. 确保 `.env` 文件在正确的目录中
-
-### 如果您遇到 "Failed to initialize Cosmos DB client" 错误：
-
-1. 检查 `backend/Fastapi/.env` 文件中的 Cosmos DB 配置
-2. 确保使用了正确的环境变量名称（`COSMOS_ENDPOINT` 和 `COSMOS_KEY`）
-3. 验证 Azure Cosmos DB 的访问密钥是否正确
+### 数据保护
+- 敏感信息不暴露
+- 本地存储加密
+- API密钥保护

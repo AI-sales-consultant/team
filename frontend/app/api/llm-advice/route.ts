@@ -13,40 +13,32 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 这里将来会调用后端的LLM服务
-    // 目前返回模拟数据，等待后端接口完成后替换
-    const mockAdvice = {
-      advice: `Based on your assessment results, I provide the following business recommendations:
+    // 调用后端API
+    const backendUrl = process.env.BACKEND_URL || "http://localhost:8000"
+    const response = await fetch(`${backendUrl}/api/llm-advice`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        userId: userId,
+        assessmentData: assessmentData
+      })
+    })
 
-🎯 **Key Findings**
-Your business performs well across multiple dimensions, particularly in customer service and team collaboration. Here are targeted improvement suggestions:
-
-📈 **Priority Improvement Areas**
-1. **Process Optimization**: Recommend implementing more systematic project management processes
-2. **Technology Upgrade**: Consider introducing automation tools to improve efficiency
-3. **Market Expansion**: Explore new market opportunities based on existing advantages
-
-💡 **Specific Action Recommendations**
-• Establish weekly team review meeting mechanisms
-• Invest in customer relationship management systems
-• Develop quarterly goal tracking systems
-
-🚀 **Expected Outcomes**
-After implementing these recommendations, you can expect to see significant efficiency improvements and customer satisfaction enhancements within 3-6 months.
-
-*This advice is generated based on your assessment data. Regular re-assessment is recommended to track progress.*`,
-      timestamp: new Date().toISOString()
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error("Backend API error:", response.status, errorText)
+      throw new Error(`Backend API error: ${response.status}`)
     }
 
-    // 模拟API延迟
-    await new Promise(resolve => setTimeout(resolve, 2000))
-
-    return NextResponse.json(mockAdvice)
+    const data = await response.json()
+    return NextResponse.json(data)
 
   } catch (error) {
     console.error("LLM Advice API Error:", error)
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: "Internal server error", details: error instanceof Error ? error.message : "Unknown error" },
       { status: 500 }
     )
   }
