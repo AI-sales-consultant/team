@@ -1,4 +1,4 @@
-# Business Assessment System
+# Business Assessment System for Ascent
 
 A Next.js and FastAPI-based enterprise assessment questionnaire system that provides personalized business recommendations and LLM-driven analysis.
 
@@ -41,7 +41,7 @@ cd team
 ### 2. Frontend Setup
 ```bash
 cd frontend
-npm install --legacy-peer-deps
+npm install --legacy-peer-deps （if there is a version Error）
 ```
 
 ### 3. Backend Setup
